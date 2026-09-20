@@ -1,0 +1,9 @@
+/* Keep the call-to-action legible above every hero state and font-loading state. */
+.site-header .nav-cta {
+  color:#f1eee7 !important;
+  background:#1c1b19;
+  min-width:156px;
+  white-space:nowrap;
+}
+.site-header .nav-cta span { color:#f1eee7 !important; }
+.site-header .sign-in { padding:8px 2px; }

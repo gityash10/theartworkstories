@@ -1,0 +1,40 @@
+/* Settled hero composition: header, reading field, and artwork orbit never compete. */
+body.intro-complete .hero { isolation:isolate; }
+body.intro-complete .hero-copy { z-index:4; }
+body.intro-complete .hero-kicker { z-index:4; }
+body.intro-complete .hero .hero-art { z-index:2; }
+
+/* Header clearance: no artwork may enter the first 12% of the canvas. */
+body.intro-complete .hero .hero-art-one{width:118px;height:153px;left:2%;top:18%;transform:rotate(-9deg);--dx:7px;--dy:-8px;--drift-delay:-1.3s}
+body.intro-complete .hero .hero-art-two{width:99px;height:140px;right:3%;top:16%;transform:rotate(7deg);--dx:-8px;--dy:8px;--drift-delay:-3.7s}
+body.intro-complete .hero .hero-art-three{width:124px;height:104px;right:2%;bottom:15%;transform:rotate(-6deg);--dx:-7px;--dy:-6px;--drift-delay:-2.1s}
+body.intro-complete .hero .hero-art-four{width:106px;height:141px;left:2%;bottom:13%;transform:rotate(8deg);--dx:7px;--dy:7px;--drift-delay:-4.2s}
+body.intro-complete .hero .hero-art-five{width:106px;height:140px;right:15%;bottom:2%;transform:rotate(-5deg);--dx:5px;--dy:-9px;--drift-delay:-.7s}
+body.intro-complete .hero .hero-art-six{width:95px;height:127px;left:18%;top:14%;transform:rotate(7deg);--dx:-6px;--dy:8px;--drift-delay:-3.2s}
+body.intro-complete .hero .hero-art-seven{width:106px;height:137px;left:17%;bottom:-2%;transform:rotate(-8deg);--dx:8px;--dy:-6px;--drift-delay:-1.8s}
+body.intro-complete .hero .hero-art-eight{width:97px;height:128px;right:19%;top:15%;transform:rotate(-8deg);--dx:7px;--dy:7px;--drift-delay:-4.7s}
+body.intro-complete .hero .hero-art-nine{width:95px;height:125px;right:28%;bottom:4%;transform:rotate(8deg);--dx:-8px;--dy:-6px;--drift-delay:-2.6s}
+body.intro-complete .hero .hero-art-ten{width:99px;height:126px;left:0;top:43%;transform:rotate(-6deg);--dx:6px;--dy:5px;--drift-delay:-.4s}
+body.intro-complete .hero .hero-art-eleven{width:101px;height:129px;right:0;top:40%;transform:rotate(8deg);--dx:-5px;--dy:-8px;--drift-delay:-3.9s}
+body.intro-complete .hero .hero-art-twelve{width:88px;height:112px;left:31%;top:15%;transform:rotate(-3deg);--dx:5px;--dy:7px;--drift-delay:-5.1s}
+
+/* Each card has a subtle, different motion after its shared opening orbit has finished. */
+body.intro-complete .hero .hero-art {
+  animation:float 7s ease-in-out var(--drift-delay) infinite, card-drift 6.5s ease-in-out var(--drift-delay) infinite !important;
+}
+@keyframes card-drift {
+  0%,100% { translate:0 0; }
+  48% { translate:var(--dx) var(--dy); }
+}
+
+/* The archive line is part of the copy, not part of the collage. */
+body.intro-complete .hero-kicker {
+  top:112px;
+  padding:5px 10px;
+  background:var(--paper);
+}
+
+@media (max-width:800px) {
+  body.intro-complete .hero .hero-art-one{top:18%}
+  body.intro-complete .hero .hero-art-two{top:18%}
+}

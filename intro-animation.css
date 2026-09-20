@@ -1,0 +1,71 @@
+/* The hero opens as a single revolving collage, not five unrelated drifts. */
+body:not(.intro-complete) .hero-copy,
+body:not(.intro-complete) .hero-kicker,
+body:not(.intro-complete) .hero-side-text,
+body:not(.intro-complete) .scroll-note { opacity:0; }
+
+body:not(.intro-complete) .orbit-stage {
+  position:absolute;
+  z-index:1;
+  inset:0;
+  transform-origin:center;
+  animation: collage-revolve 4.3s cubic-bezier(.55,.04,.2,1) forwards;
+}
+
+/* The cards share the same centre point and travel together through two turns. */
+@keyframes collage-revolve {
+  0% { opacity:0; transform:rotate(-32deg) scale(.72); }
+  8% { opacity:1; }
+  55% { opacity:1; transform:rotate(580deg) scale(1.02); }
+  82% { transform:rotate(710deg) scale(1); }
+  100% { opacity:1; transform:rotate(720deg) scale(1); }
+}
+
+body.intro-complete .orbit-stage { display:contents; }
+
+/* Extra cards complete the post-intro collage without obscuring the lock-up. */
+.hero-art-six{width:108px;height:150px;left:29%;top:13%;transform:rotate(7deg);animation-delay:-2.5s!important}
+.hero-art-seven{width:108px;height:143px;left:29%;bottom:9%;transform:rotate(-8deg);animation-delay:-4.5s!important}
+.hero-art-eight{width:112px;height:148px;right:30%;top:12%;transform:rotate(-8deg);animation-delay:-1.5s!important}
+.hero-art-nine{width:113px;height:147px;right:22%;bottom:9%;transform:rotate(8deg);animation-delay:-3.5s!important}
+.hero-art-ten{width:105px;height:133px;left:21%;top:42%;transform:rotate(-6deg);animation-delay:-5s!important}
+.hero-art-eleven{width:104px;height:135px;right:21%;top:43%;transform:rotate(8deg);animation-delay:-2s!important}
+.hero-art-twelve{width:105px;height:132px;left:42%;bottom:8%;transform:rotate(-3deg);animation-delay:-4s!important}
+
+body:not(.intro-complete) .hero-art-six,
+body:not(.intro-complete) .hero-art-seven,
+body:not(.intro-complete) .hero-art-eight,
+body:not(.intro-complete) .hero-art-nine,
+body:not(.intro-complete) .hero-art-ten,
+body:not(.intro-complete) .hero-art-eleven,
+body:not(.intro-complete) .hero-art-twelve { opacity:.95; }
+
+body.intro-complete .hero-art-six,
+body.intro-complete .hero-art-seven,
+body.intro-complete .hero-art-eight,
+body.intro-complete .hero-art-nine,
+body.intro-complete .hero-art-ten,
+body.intro-complete .hero-art-eleven,
+body.intro-complete .hero-art-twelve { animation:float 7s ease-in-out infinite; }
+body.intro-complete .hero-copy,
+body.intro-complete .hero-kicker,
+body.intro-complete .hero-side-text,
+body.intro-complete .scroll-note { animation: editorial-reveal .85s cubic-bezier(.16,1,.3,1) both; }
+body.intro-complete .hero-copy { animation-delay:.05s; }
+body.intro-complete .hero-kicker { animation-delay:.1s; }
+body.intro-complete .hero-side-text,
+body.intro-complete .scroll-note { animation-delay:.18s; }
+@keyframes editorial-reveal { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+
+@media (max-width:800px) {
+  body:not(.intro-complete) .orbit-stage { animation-duration:3.7s; }
+  .hero-art-six,.hero-art-seven,.hero-art-eight,.hero-art-nine,.hero-art-ten,.hero-art-eleven,.hero-art-twelve { display:none; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  body:not(.intro-complete) .orbit-stage { animation:none; opacity:1; }
+  body:not(.intro-complete) .hero-copy,
+  body:not(.intro-complete) .hero-kicker,
+  body:not(.intro-complete) .hero-side-text,
+  body:not(.intro-complete) .scroll-note { opacity:1; }
+}
