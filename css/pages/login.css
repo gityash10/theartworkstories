@@ -1,0 +1,670 @@
+/* =========================================
+   THE ARTWORK STORIES
+   LOGIN PAGE
+========================================= */
+
+.login-page {
+    min-height: 100vh;
+    background: #f5f2ea;
+    color: #111111;
+}
+
+
+/* =========================================
+   MAIN LAYOUT
+========================================= */
+
+.login-container {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 65% 35%;
+}
+
+
+/* =========================================
+   LEFT ART SECTION
+========================================= */
+
+.login-art-section {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    background: #ff5a00;
+    isolation: isolate;
+}
+
+.art-overlay {
+    position: absolute;
+    inset: 0;
+
+    background: rgba(255, 255, 255, .03);
+
+    z-index: 0;
+}
+
+
+/* =========================================
+   BRAND
+========================================= */
+
+.art-intro {
+    position: absolute;
+    top: 40px;
+    left: 48px;
+    right: 48px;
+
+    z-index: 3;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.art-brand,
+.mobile-brand {
+    color: #111;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+
+/* =========================================
+   ART MESSAGE
+========================================= */
+
+.art-message {
+    width: min(390px, 34vw);
+    margin-top: 108px;
+}
+
+.art-eyebrow {
+    margin: 0 0 18px;
+
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+}
+
+.art-message h1 {
+    margin: 0;
+
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(52px, 5vw, 88px);
+    font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: -0.055em;
+}
+
+.art-message h1 em {
+    font-style: italic;
+}
+
+.art-message p:last-child {
+    max-width: 320px;
+    margin-top: 28px;
+
+    color: #111111;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.portrait-artwork {
+    position: absolute;
+    top: 4%;
+    right: 0;
+    bottom: 4%;
+    z-index: 1;
+    width: 52%;
+    overflow: hidden;
+    animation: portraitEntrance .9s ease-out both;
+}
+
+.portrait-artwork img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    object-position: right bottom;
+}
+
+@keyframes portraitEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* =========================================
+   CAPTION
+========================================= */
+
+.art-caption {
+    position: absolute;
+    z-index: 3;
+    bottom: 32px;
+    left: 48px;
+    right: auto;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    font-weight: 600;
+
+    color: #111111;
+}
+
+.caption-arrow {
+    font-size: 18px;
+    line-height: .65;
+}
+
+
+/* =========================================
+   RIGHT FORM SECTION
+========================================= */
+
+.login-form-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 60px 7vw 60px 8vw;
+    background: #f5f2ea;
+    animation: formEntrance .8s ease-out .08s both;
+}
+
+@keyframes formEntrance {
+    from {
+        opacity: 0;
+        transform: translateX(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.login-form-wrapper {
+    width: 100%;
+    max-width: 420px;
+}
+
+
+/* =========================================
+   MOBILE BRAND
+========================================= */
+
+.mobile-brand {
+    display: none;
+}
+
+
+/* =========================================
+   HEADING
+========================================= */
+
+.login-heading {
+    margin-bottom: 42px;
+}
+
+.login-kicker {
+    display: block;
+
+    margin-bottom: 16px;
+
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+}
+
+.login-heading h2 {
+    margin: 0;
+
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(48px, 4.2vw, 72px);
+    font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+}
+
+.login-heading h2 em {
+    font-style: italic;
+}
+
+.login-heading p {
+    margin-top: 20px;
+
+    color: #77736a;
+
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+
+/* =========================================
+   FORM
+========================================= */
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-field label {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.form-field input {
+    width: 100%;
+
+    height: 58px;
+
+    padding: 0 15px;
+
+    border: 1px solid #d8d1c5;
+    border-radius: 0;
+
+    background: transparent;
+
+    color: #111111;
+
+    font-family: inherit;
+    font-size: 14px;
+
+    outline: none;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+.form-field input::placeholder {
+    color: #aaa69d;
+}
+
+.form-field input:focus {
+    border-color: #111111;
+    background: #fff;
+}
+
+
+/* =========================================
+   PASSWORD
+========================================= */
+
+.password-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.forgot-password {
+    color: #77736a;
+
+    font-size: 11px;
+
+    text-decoration: none;
+}
+
+.forgot-password:hover {
+    color: #171717;
+}
+
+.password-input-wrapper {
+    position: relative;
+}
+
+.password-input-wrapper input {
+    padding-right: 65px;
+}
+
+.password-toggle {
+    position: absolute;
+
+    top: 50%;
+    right: 14px;
+
+    transform: translateY(-50%);
+
+    border: 0;
+    background: none;
+
+    color: #77736a;
+
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.password-toggle:hover {
+    color: #171717;
+}
+
+
+/* =========================================
+   ERROR
+========================================= */
+
+.field-error {
+    min-height: 14px;
+
+    font-size: 11px;
+
+    color: #a33b31;
+}
+
+
+/* =========================================
+   REMEMBER ME
+========================================= */
+
+.login-options {
+    margin-top: -3px;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    color: #77736a;
+
+    font-size: 12px;
+
+    cursor: pointer;
+}
+
+.remember-me input {
+    width: 14px;
+    height: 14px;
+
+    accent-color: #171717;
+}
+
+
+/* =========================================
+   LOGIN BUTTON
+========================================= */
+
+.login-button {
+    width: 100%;
+    height: 54px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 18px;
+
+    border: 1px solid #111111;
+
+    background: #111111;
+    color: #f5f2ea;
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.25s ease,
+        color 0.25s ease;
+}
+
+.login-button:hover {
+    background: transparent;
+    color: #171717;
+}
+
+.button-arrow {
+    font-size: 18px;
+}
+
+
+/* =========================================
+   MESSAGE
+========================================= */
+
+.login-message {
+    min-height: 18px;
+
+    text-align: center;
+
+    font-size: 12px;
+    color: #77736a;
+}
+
+
+/* =========================================
+   DIVIDER
+========================================= */
+
+.login-divider {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    margin: 28px 0;
+
+    color: #aaa69d;
+
+    font-size: 11px;
+}
+
+.login-divider::before,
+.login-divider::after {
+    content: "";
+
+    flex: 1;
+
+    height: 1px;
+
+    background: #ddd9d0;
+}
+
+
+/* =========================================
+   GOOGLE
+========================================= */
+
+.social-login {
+    width: 100%;
+    height: 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    border: 1px solid #d8d1c5;
+
+    background: transparent;
+
+    color: #111111;
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.social-login:hover {
+    background: #fff;
+    border-color: #171717;
+}
+
+.google-icon {
+    font-weight: 700;
+    font-size: 15px;
+}
+
+
+/* =========================================
+   SIGN UP
+========================================= */
+
+.signup-prompt {
+    margin: 28px 0 0;
+
+    text-align: center;
+
+    color: #77736a;
+
+    font-size: 12px;
+}
+
+.signup-prompt a,
+.login-footer-text a {
+    color: #171717;
+    font-weight: 600;
+}
+
+
+/* =========================================
+   FOOTER
+========================================= */
+
+.login-footer-text {
+    margin-top: 32px;
+
+    text-align: center;
+
+    color: #aaa69d;
+
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1000px) {
+
+    .login-container {
+        grid-template-columns: 55% 45%;
+    }
+
+    .art-message {
+        width: 250px;
+    }
+
+    .portrait-artwork {
+        right: 0;
+        width: 44%;
+    }
+
+    .art-message h1 {
+        font-size: 48px;
+    }
+
+}
+
+
+@media (max-width: 760px) {
+
+    .login-container {
+        display: block;
+    }
+
+    .login-art-section {
+        min-height: 430px;
+        height: 430px;
+    }
+
+    .art-intro {
+        top: 25px;
+        left: 25px;
+        right: 25px;
+    }
+
+    .art-message {
+        margin-top: 55px;
+        width: 220px;
+    }
+
+    .art-message h1 {
+        font-size: 40px;
+    }
+
+    .art-message p:last-child {
+        display: none;
+    }
+
+    .portrait-artwork {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 50%;
+    }
+
+    .art-caption {
+        bottom: 18px;
+        left: 25px;
+        font-size: 7px;
+    }
+
+    .login-form-section {
+        padding: 55px 25px;
+    }
+
+    .mobile-brand {
+        display: block;
+        margin-bottom: 45px;
+    }
+
+}
+
+
+@media (max-width: 420px) {
+
+    .login-art-section {
+        min-height: 390px;
+        height: 390px;
+    }
+
+    .art-message h1 {
+        font-size: 34px;
+    }
+
+    .art-message {
+        width: 190px;
+    }
+
+    .portrait-artwork {
+        width: 52%;
+    }
+
+    .login-heading h2 {
+        font-size: 43px;
+    }
+
+}

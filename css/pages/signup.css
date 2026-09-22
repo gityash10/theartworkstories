@@ -1,0 +1,1216 @@
+/* =========================================================
+   THE ARTWORK STORIES — SIGNUP PAGE
+   ========================================================= */
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.signup-page {
+    min-height: 100vh;
+    background: #f5f2ea;
+    color: #111111;
+    overflow-x: hidden;
+}
+
+
+/* =========================================================
+   MAIN LAYOUT
+   ========================================================= */
+
+.signup-layout {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 61% 39%;
+}
+
+
+/* =========================================================
+   LEFT ART PANEL
+   ========================================================= */
+
+.signup-art-panel {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+
+    background: #11110e;
+    color: #f5f2ea;
+}
+
+
+/* =========================================================
+   IMAGE
+   ========================================================= */
+
+.signup-art-image {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.signup-art-image img {
+    width: 100%;
+    height: 100%;
+    display: block;
+
+    object-fit: cover;
+
+    /*
+     * Important:
+     * Keep the artwork and Mona Lisa visually centered
+     * while retaining the crowd toward the bottom.
+     */
+    object-position: 50% 48%;
+
+    filter: saturate(0.82) contrast(1.04);
+
+    transform: scale(1.015);
+
+    transition:
+        transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+
+/* Subtle image movement */
+
+.signup-art-panel:hover .signup-art-image img {
+    transform: scale(1.035);
+}
+
+
+/* =========================================================
+   DARK EDITORIAL OVERLAY
+   ========================================================= */
+
+.signup-art-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(8, 8, 6, 0.86) 0%,
+            rgba(8, 8, 6, 0.60) 32%,
+            rgba(8, 8, 6, 0.20) 68%,
+            rgba(8, 8, 6, 0.28) 100%
+        );
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   BRAND
+   ========================================================= */
+
+.signup-brand {
+    position: absolute;
+
+    top: 24px;
+    left: 40px;
+
+    z-index: 5;
+
+    color: #f5f2ea;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 17px;
+    font-weight: 700;
+
+    line-height: 1;
+
+    text-decoration: none;
+
+    letter-spacing: -0.035em;
+
+    transition: opacity 180ms ease;
+}
+
+.signup-brand:hover {
+    opacity: 0.72;
+}
+
+
+/* =========================================================
+   LEFT EDITORIAL COPY
+   ========================================================= */
+
+.signup-art-copy {
+    position: absolute;
+
+    /*
+     * Deliberately positioned above the center.
+     * This prevents the heading from sitting over the
+     * crowd at the bottom of the photograph.
+     */
+    left: 40px;
+    top: 41%;
+
+    z-index: 5;
+
+    width: min(500px, 43vw);
+
+    transform: translateY(-50%);
+}
+
+
+/* =========================================================
+   EYEBROW
+   ========================================================= */
+
+.signup-art-eyebrow {
+    margin: 0 0 26px;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+
+    color: rgba(245, 242, 234, 0.90);
+}
+
+
+/* =========================================================
+   MAIN TITLE
+   ========================================================= */
+
+.signup-art-title {
+    margin: 0;
+
+    max-width: 500px;
+
+    color: #f5f2ea;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    /*
+     * Large editorial typography,
+     * but controlled enough to preserve the image.
+     */
+    font-size: clamp(54px, 5vw, 82px);
+
+    font-weight: 400;
+
+    line-height: 0.91;
+
+    letter-spacing: -0.055em;
+}
+
+.signup-art-title em {
+    font-style: italic;
+    font-weight: 400;
+}
+
+
+/* =========================================================
+   DESCRIPTION
+   ========================================================= */
+
+.signup-art-description {
+    max-width: 380px;
+
+    margin: 28px 0 0;
+
+    color: rgba(245, 242, 234, 0.84);
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 15px;
+
+    line-height: 1.55;
+}
+
+
+/* =========================================================
+   LEFT BOTTOM NOTE
+   ========================================================= */
+
+.signup-art-note {
+    position: absolute;
+
+    left: 40px;
+    bottom: 36px;
+
+    z-index: 5;
+
+    display: flex;
+    align-items: center;
+
+    gap: 20px;
+
+    color: rgba(245, 242, 234, 0.90);
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    letter-spacing: 0.17em;
+    line-height: 1.45;
+
+    text-transform: uppercase;
+}
+
+.signup-art-note-line {
+    width: 38px;
+    height: 1px;
+
+    background: rgba(245, 242, 234, 0.85);
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   RIGHT FORM PANEL
+   ========================================================= */
+
+.signup-form-panel {
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+
+    background: #f5f2ea;
+}
+
+
+/* =========================================================
+   FORM CONTAINER
+   ========================================================= */
+
+.signup-form-container {
+    width: 100%;
+    max-width: 520px;
+
+    margin: 0 auto;
+
+    padding: 72px 64px;
+}
+
+
+/* =========================================================
+   HEADING
+   ========================================================= */
+
+.signup-heading {
+    margin-bottom: 40px;
+}
+
+.signup-eyebrow {
+    margin: 0 0 22px;
+
+    color: #111111;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.signup-title {
+    margin: 0;
+
+    color: #111111;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: clamp(50px, 4.2vw, 70px);
+
+    font-weight: 400;
+
+    line-height: 0.92;
+
+    letter-spacing: -0.055em;
+}
+
+.signup-title em {
+    font-style: italic;
+}
+
+.signup-subtitle {
+    max-width: 440px;
+
+    margin: 25px 0 0;
+
+    color: #77736c;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 14px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.signup-form {
+    width: 100%;
+}
+
+
+/* =========================================================
+   FIELD
+   ========================================================= */
+
+.signup-field {
+    margin-bottom: 28px;
+}
+
+.signup-field label {
+    display: block;
+
+    margin-bottom: 9px;
+
+    color: #111111;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+.signup-field input[type="text"],
+.signup-field input[type="email"],
+.signup-field input[type="password"] {
+    width: 100%;
+    height: 57px;
+
+    box-sizing: border-box;
+
+    padding: 0 17px;
+
+    border: 1px solid #d7d2c9;
+    border-radius: 0;
+
+    outline: none;
+
+    background: transparent;
+
+    color: #111111;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 14px;
+
+    transition:
+        border-color 180ms ease,
+        background 180ms ease;
+}
+
+.signup-field input::placeholder {
+    color: #aaa59d;
+}
+
+.signup-field input:focus {
+    border-color: #111111;
+
+    background: rgba(255, 255, 255, 0.18);
+}
+
+
+/* =========================================================
+   PASSWORD
+   ========================================================= */
+
+.signup-password-wrapper {
+    position: relative;
+}
+
+.signup-password-wrapper input {
+    padding-right: 75px !important;
+}
+
+.signup-password-toggle {
+    position: absolute;
+
+    top: 50%;
+    right: 16px;
+
+    transform: translateY(-50%);
+
+    padding: 0;
+
+    border: 0;
+
+    background: transparent;
+
+    color: #77736c;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 12px;
+
+    cursor: pointer;
+
+    transition: color 180ms ease;
+}
+
+.signup-password-toggle:hover {
+    color: #111111;
+}
+
+.signup-password-hint {
+    margin: 7px 0 0;
+
+    color: #89847c;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.signup-field-error {
+    display: block;
+
+    min-height: 0;
+
+    margin-top: 6px;
+
+    color: #9c2e22;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 11px;
+}
+
+.signup-field.has-error input {
+    border-color: #9c2e22;
+}
+
+
+/* =========================================================
+   TERMS
+   ========================================================= */
+
+.signup-terms {
+    margin-top: 3px;
+    margin-bottom: 22px;
+}
+
+.signup-checkbox-label {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 11px;
+
+    position: relative;
+
+    cursor: pointer;
+}
+
+
+/* Hide native checkbox */
+
+.signup-checkbox-label input {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    opacity: 0;
+
+    pointer-events: none;
+}
+
+
+/* Custom checkbox */
+
+.signup-checkbox-custom {
+    width: 17px;
+    height: 17px;
+
+    flex: 0 0 17px;
+
+    margin-top: 1px;
+
+    border: 1px solid #aaa59d;
+
+    background: transparent;
+
+    position: relative;
+
+    transition:
+        background 160ms ease,
+        border-color 160ms ease;
+}
+
+
+/* Checked */
+
+.signup-checkbox-label input:checked
++ .signup-checkbox-custom {
+    border-color: #111111;
+
+    background: #111111;
+}
+
+.signup-checkbox-label input:checked
++ .signup-checkbox-custom::after {
+    content: "";
+
+    position: absolute;
+
+    left: 5px;
+    top: 1px;
+
+    width: 5px;
+    height: 10px;
+
+    border-right: 1.5px solid #f5f2ea;
+    border-bottom: 1.5px solid #f5f2ea;
+
+    transform: rotate(45deg);
+}
+
+.signup-terms-text {
+    color: #77736c;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 12px;
+
+    line-height: 1.45;
+}
+
+.signup-inline-link {
+    color: #111111;
+
+    font-weight: 600;
+
+    text-decoration: underline;
+
+    text-underline-offset: 2px;
+}
+
+
+/* =========================================================
+   SUBMIT
+   ========================================================= */
+
+.signup-submit {
+    width: 100%;
+    height: 59px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 20px;
+
+    border: 1px solid #111111;
+    border-radius: 0;
+
+    background: #111111;
+    color: #f5f2ea;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 180ms ease,
+        color 180ms ease;
+}
+
+.signup-submit:hover {
+    background: transparent;
+    color: #111111;
+}
+
+.signup-submit-arrow {
+    font-size: 20px;
+    font-weight: 400;
+
+    transition: transform 180ms ease;
+}
+
+.signup-submit:hover .signup-submit-arrow {
+    transform: translateX(4px);
+}
+
+
+/* Loading */
+
+.signup-submit.is-loading {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+
+/* =========================================================
+   FORM MESSAGE
+   ========================================================= */
+
+.signup-form-message {
+    min-height: 18px;
+
+    margin: 12px 0 0;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 12px;
+
+    line-height: 1.4;
+}
+
+.signup-form-message.success {
+    color: #315b3c;
+}
+
+.signup-form-message.error {
+    color: #9c2e22;
+}
+
+
+/* =========================================================
+   DIVIDER
+   ========================================================= */
+
+.signup-divider {
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    margin: 35px 0 20px;
+}
+
+.signup-divider span {
+    flex: 1;
+
+    height: 1px;
+
+    background: #d7d2c9;
+}
+
+.signup-divider p {
+    margin: 0;
+
+    color: #aaa59d;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   GOOGLE
+   ========================================================= */
+
+.signup-google {
+    width: 100%;
+    height: 55px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 11px;
+
+    border: 1px solid #d7d2c9;
+    border-radius: 0;
+
+    background: transparent;
+
+    color: #111111;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 13px;
+
+    cursor: pointer;
+
+    transition:
+        border-color 180ms ease,
+        background 180ms ease;
+}
+
+.signup-google:hover {
+    border-color: #111111;
+
+    background: rgba(255, 255, 255, 0.35);
+}
+
+
+/* Google letter */
+
+.google-icon {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 17px;
+    font-weight: 700;
+
+    color: #111111;
+}
+
+
+/* =========================================================
+   LOGIN LINK
+   ========================================================= */
+
+.signup-login-link {
+    margin: 20px 0 0;
+
+    text-align: center;
+
+    color: #77736c;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 12px;
+}
+
+.signup-login-link a {
+    color: #111111;
+
+    font-weight: 600;
+
+    text-decoration: underline;
+
+    text-underline-offset: 2px;
+}
+
+
+/* =========================================================
+   PAGE LOAD ANIMATION
+   ========================================================= */
+
+.signup-art-copy,
+.signup-art-note {
+    opacity: 0;
+
+    animation:
+        signupFadeUp
+        800ms
+        cubic-bezier(0.22, 1, 0.36, 1)
+        forwards;
+}
+
+.signup-art-copy {
+    animation-delay: 120ms;
+}
+
+.signup-art-note {
+    animation-delay: 300ms;
+}
+
+.signup-form-container {
+    opacity: 0;
+
+    animation:
+        signupFormIn
+        700ms
+        cubic-bezier(0.22, 1, 0.36, 1)
+        180ms
+        forwards;
+}
+
+
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
+
+@keyframes signupFadeUp {
+    from {
+        opacity: 0;
+
+        transform:
+            translateY(
+                calc(-50% + 24px)
+            );
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(-50%);
+    }
+}
+
+@keyframes signupFormIn {
+    from {
+        opacity: 0;
+
+        transform:
+            translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateX(0);
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE — LARGE TABLET
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .signup-layout {
+        grid-template-columns: 55% 45%;
+    }
+
+    .signup-form-container {
+        padding: 60px 42px;
+    }
+
+    .signup-art-copy {
+        left: 32px;
+
+        width: 40vw;
+
+        top: 40%;
+    }
+
+    .signup-art-title {
+        font-size:
+            clamp(
+                50px,
+                5vw,
+                70px
+            );
+    }
+
+    .signup-brand {
+        left: 32px;
+    }
+
+    .signup-art-note {
+        left: 32px;
+    }
+
+    .signup-art-image img {
+        object-position: 50% 48%;
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+   ========================================================= */
+
+@media (max-width: 800px) {
+
+    .signup-layout {
+        display: flex;
+
+        flex-direction: column;
+    }
+
+
+    /* -----------------------------------------------------
+       ART SECTION
+       ----------------------------------------------------- */
+
+    .signup-art-panel {
+        min-height: 620px;
+
+        height: 75vh;
+
+        max-height: 720px;
+    }
+
+
+    .signup-brand {
+        top: 22px;
+        left: 22px;
+
+        font-size: 16px;
+    }
+
+
+    .signup-art-overlay {
+        background:
+            linear-gradient(
+                90deg,
+                rgba(8, 8, 6, 0.84),
+                rgba(8, 8, 6, 0.25)
+            ),
+            linear-gradient(
+                0deg,
+                rgba(8, 8, 6, 0.48),
+                transparent 60%
+            );
+    }
+
+
+    .signup-art-copy {
+        left: 22px;
+
+        top: 43%;
+
+        width:
+            calc(
+                100% - 44px
+            );
+
+        transform:
+            translateY(-50%);
+    }
+
+
+    .signup-art-eyebrow {
+        margin-bottom: 20px;
+
+        font-size: 10px;
+    }
+
+
+    .signup-art-title {
+        max-width: 470px;
+
+        font-size:
+            clamp(
+                48px,
+                13vw,
+                72px
+            );
+
+        line-height: 0.91;
+    }
+
+
+    .signup-art-description {
+        max-width: 360px;
+
+        margin-top: 26px;
+
+        font-size: 14px;
+    }
+
+
+    .signup-art-note {
+        left: 22px;
+
+        bottom: 26px;
+    }
+
+
+    .signup-art-image img {
+        object-position: 50% 48%;
+    }
+
+
+    /* -----------------------------------------------------
+       FORM
+       ----------------------------------------------------- */
+
+    .signup-form-panel {
+        min-height: auto;
+
+        align-items: flex-start;
+    }
+
+
+    .signup-form-container {
+        max-width: none;
+
+        padding:
+            70px
+            22px
+            60px;
+    }
+
+
+    .signup-heading {
+        margin-bottom: 36px;
+    }
+
+
+    .signup-title {
+        font-size:
+            clamp(
+                48px,
+                12vw,
+                64px
+            );
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE — SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+    .signup-art-panel {
+        min-height: 560px;
+
+        height: 78vh;
+    }
+
+
+    .signup-art-image img {
+        object-position: 53% 48%;
+    }
+
+
+    .signup-art-copy {
+        top: 43%;
+    }
+
+
+    .signup-art-description {
+        max-width: 300px;
+    }
+
+
+    .signup-form-container {
+        padding-top: 56px;
+    }
+
+
+    .signup-field {
+        margin-bottom: 24px;
+    }
+
+
+    .signup-divider {
+        margin-top: 30px;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 380px) {
+
+    .signup-art-panel {
+        min-height: 520px;
+    }
+
+    .signup-art-title {
+        font-size: 46px;
+    }
+
+    .signup-art-description {
+        font-size: 13px;
+    }
+
+    .signup-form-container {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .signup-art-copy,
+    .signup-art-note,
+    .signup-form-container {
+        opacity: 1;
+
+        animation: none;
+    }
+
+    .signup-art-image img {
+        transition: none;
+
+        transform: none;
+    }
+}

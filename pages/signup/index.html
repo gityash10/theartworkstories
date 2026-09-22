@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Create Account — The ArtWork Stories</title>
+
+    <link rel="stylesheet" href="../../css/base/reset.css">
+    <link rel="stylesheet" href="../../css/base/variables.css">
+    <link rel="stylesheet" href="../../css/base/typography.css">
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/pages/signup.css">
+</head>
+
+<body class="signup-page">
+
+    <main class="signup-layout">
+
+        <!-- =========================================
+             LEFT: ART / STORY PANEL
+        ========================================== -->
+
+        <section class="signup-art-panel">
+
+            <div class="signup-art-image">
+                <img
+                    src="../../assets/images/posters/good.avif"
+                    alt="Visitors experiencing artwork in a museum"
+                >
+            </div>
+
+            <div class="signup-art-overlay"></div>
+
+            <!-- Brand -->
+            <a
+                href="../home/index.html"
+                class="signup-brand"
+                aria-label="The ArtWork Stories home"
+            >
+                The ArtWork Stories
+            </a>
+
+            <!-- Editorial copy -->
+            <div class="signup-art-copy">
+
+                <p class="signup-art-eyebrow">
+                    YOUR ART. YOUR STORY.
+                </p>
+
+                <h1 class="signup-art-title">
+                    Every story
+                    <br>
+                    <em>deserves</em>
+                    <br>
+                    to be told.
+                </h1>
+
+                <p class="signup-art-description">
+                    Join a community discovering, creating and
+                    sharing the stories behind art.
+                </p>
+
+            </div>
+
+            <!-- Small editorial note -->
+            <div class="signup-art-note">
+                <span class="signup-art-note-line"></span>
+
+                <span>
+                    ART BRINGS<br>
+                    PEOPLE TOGETHER.
+                </span>
+            </div>
+
+        </section>
+
+
+        <!-- =========================================
+             RIGHT: SIGNUP FORM
+        ========================================== -->
+
+        <section class="signup-form-panel">
+
+            <div class="signup-form-container">
+
+                <div class="signup-heading">
+
+                    <p class="signup-eyebrow">
+                        JOIN THE COMMUNITY
+                    </p>
+
+                    <h2 class="signup-title">
+                        Create your
+                        <br>
+                        <em>account.</em>
+                    </h2>
+
+                    <p class="signup-subtitle">
+                        Start discovering stories. Share your art.
+                        Become part of the community.
+                    </p>
+
+                </div>
+
+
+                <!-- Signup form -->
+
+                <form
+                    id="signupForm"
+                    class="signup-form"
+                    novalidate
+                >
+
+                    <!-- Name -->
+
+                    <div class="signup-field">
+
+                        <label for="name">
+                            Your name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            placeholder="Your name"
+                            autocomplete="name"
+                            required
+                        >
+
+                        <span
+                            class="signup-field-error"
+                            id="nameError"
+                        ></span>
+
+                    </div>
+
+
+                    <!-- Email -->
+
+                    <div class="signup-field">
+
+                        <label for="email">
+                            Email address
+                        </label>
+
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            autocomplete="email"
+                            required
+                        >
+
+                        <span
+                            class="signup-field-error"
+                            id="emailError"
+                        ></span>
+
+                    </div>
+
+
+                    <!-- Password -->
+
+                    <div class="signup-field">
+
+                        <label for="password">
+                            Password
+                        </label>
+
+                        <div class="signup-password-wrapper">
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Create a password"
+                                autocomplete="new-password"
+                                minlength="6"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                class="signup-password-toggle"
+                                id="passwordToggle"
+                                aria-label="Show password"
+                            >
+                                Show
+                            </button>
+
+                        </div>
+
+                        <p class="signup-password-hint">
+                            Use at least 6 characters.
+                        </p>
+
+                        <span
+                            class="signup-field-error"
+                            id="passwordError"
+                        ></span>
+
+                    </div>
+
+
+                    <!-- Terms -->
+
+                    <div class="signup-terms">
+
+                        <label class="signup-checkbox-label">
+
+                            <input
+                                type="checkbox"
+                                id="terms"
+                                name="terms"
+                                required
+                            >
+
+                            <span class="signup-checkbox-custom"></span>
+
+                            <span class="signup-terms-text">
+                                I agree to the
+                                <a href="#" class="signup-inline-link">
+                                    Terms
+                                </a>
+                                and
+                                <a href="#" class="signup-inline-link">
+                                    Privacy Policy
+                                </a>.
+                            </span>
+
+                        </label>
+
+                        <span
+                            class="signup-field-error"
+                            id="termsError"
+                        ></span>
+
+                    </div>
+
+
+                    <!-- Submit -->
+
+                    <button
+                        type="submit"
+                        class="signup-submit"
+                        id="signupSubmit"
+                    >
+                        <span>Create Account</span>
+
+                        <span class="signup-submit-arrow">
+                            →
+                        </span>
+                    </button>
+
+                    <p
+                        class="signup-form-message"
+                        id="signupMessage"
+                        aria-live="polite"
+                    ></p>
+
+                </form>
+
+
+                <!-- Divider -->
+
+                <div class="signup-divider">
+                    <span></span>
+                    <p>or</p>
+                    <span></span>
+                </div>
+
+
+                <!-- Google -->
+
+                <button
+                    type="button"
+                    class="signup-google"
+                    id="googleSignup"
+                >
+                    <span class="google-icon">
+                        G
+                    </span>
+
+                    <span>
+                        Continue with Google
+                    </span>
+                </button>
+
+
+                <!-- Login -->
+
+                <p class="signup-login-link">
+                    Already have an account?
+                    <a href="../login/index.html">
+                        Sign in
+                    </a>
+                </p>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="../../js/pages/signup.js"></script>
+
+</body>
+</html>
