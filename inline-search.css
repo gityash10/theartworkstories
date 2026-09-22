@@ -1,6 +1,0 @@
-/* Search expands exactly where its icon sits in the navigation. */
-.nav-search{display:flex;align-items:center;width:22px;overflow:hidden;transition:width .3s ease,background .3s ease}
-.nav-search.is-open{width:278px;min-height:42px;padding:0 11px;background:#e1e0da;border-radius:14px}
-.nav-search .search-button{flex:none;cursor:pointer}.nav-search input{width:0;min-width:0;padding:0;border:0;outline:0;background:transparent;opacity:0;font:14px var(--sans);transition:width .3s ease,opacity .2s ease;color:var(--ink)}
-.nav-search.is-open input{width:230px;padding-left:9px;opacity:1}.nav-search input::placeholder{color:#66645e}
-@media(max-width:800px){.nav-search.is-open{position:absolute;right:14px;top:10px;width:calc(100vw - 28px);z-index:8}.nav-search.is-open input{width:100%}}
