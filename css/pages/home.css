@@ -1,0 +1,60 @@
+/* Final landing-page overrides, kept in their original cascade order. */
+body:not(.intro-complete) .orbit-stage { position:absolute; z-index:1; inset:0; transform-origin:center; animation:collage-revolve 4.3s cubic-bezier(.55,.04,.2,1) forwards; }
+@keyframes collage-revolve { 0% { opacity:0; transform:rotate(-32deg) scale(.72); } 8% { opacity:1; } 55% { opacity:1; transform:rotate(580deg) scale(1.02); } 82% { transform:rotate(710deg) scale(1); } 100% { opacity:1; transform:rotate(720deg) scale(1); } }
+body.intro-complete .orbit-stage { display:contents; }
+.hero-art-six{width:108px;height:150px;left:29%;top:13%;transform:rotate(7deg);animation-delay:-2.5s!important}
+.hero-art-seven{width:108px;height:143px;left:29%;bottom:9%;transform:rotate(-8deg);animation-delay:-4.5s!important}
+.hero-art-eight{width:112px;height:148px;right:30%;top:12%;transform:rotate(-8deg);animation-delay:-1.5s!important}
+.hero-art-nine{width:113px;height:147px;right:22%;bottom:9%;transform:rotate(8deg);animation-delay:-3.5s!important}
+.hero-art-ten{width:105px;height:133px;left:21%;top:42%;transform:rotate(-6deg);animation-delay:-5s!important}
+.hero-art-eleven{width:104px;height:135px;right:21%;top:43%;transform:rotate(8deg);animation-delay:-2s!important}
+.hero-art-twelve{width:105px;height:132px;left:42%;bottom:8%;transform:rotate(-3deg);animation-delay:-4s!important}
+body:not(.intro-complete) .hero-art-six,body:not(.intro-complete) .hero-art-seven,body:not(.intro-complete) .hero-art-eight,body:not(.intro-complete) .hero-art-nine,body:not(.intro-complete) .hero-art-ten,body:not(.intro-complete) .hero-art-eleven,body:not(.intro-complete) .hero-art-twelve { opacity:.95; }
+body.intro-complete .hero-art-six,body.intro-complete .hero-art-seven,body.intro-complete .hero-art-eight,body.intro-complete .hero-art-nine,body.intro-complete .hero-art-ten,body.intro-complete .hero-art-eleven,body.intro-complete .hero-art-twelve { animation:float 7s ease-in-out infinite; }
+body.intro-complete .hero-copy,body.intro-complete .hero-kicker,body.intro-complete .hero-side-text,body.intro-complete .scroll-note { animation:editorial-reveal .85s cubic-bezier(.16,1,.3,1) both; }
+body.intro-complete .hero-copy { animation-delay:.05s; } body.intro-complete .hero-kicker { animation-delay:.1s; } body.intro-complete .hero-side-text,body.intro-complete .scroll-note { animation-delay:.18s; }
+@keyframes editorial-reveal { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+@media (max-width:800px) { body:not(.intro-complete) .orbit-stage { animation-duration:3.7s; } .hero-art-six,.hero-art-seven,.hero-art-eight,.hero-art-nine,.hero-art-ten,.hero-art-eleven,.hero-art-twelve { display:none; } }
+@media (prefers-reduced-motion:reduce) { body:not(.intro-complete) .orbit-stage { animation:none; opacity:1; } body:not(.intro-complete) .hero-copy,body:not(.intro-complete) .hero-kicker,body:not(.intro-complete) .hero-side-text,body:not(.intro-complete) .scroll-note { opacity:1; } }
+
+body.intro-complete .hero-copy { position:relative; z-index:3; }
+body.intro-complete .hero-art { z-index:1; }
+body.intro-complete .hero-kicker { left:50%; top:105px; z-index:3; transform:translateX(-50%) !important; white-space:nowrap; }
+body.intro-complete .hero .hero-art-one{width:118px;height:153px;left:2%;top:18%;transform:rotate(-9deg)}
+body.intro-complete .hero .hero-art-two{width:99px;height:140px;right:3%;top:12%;transform:rotate(7deg)}
+body.intro-complete .hero .hero-art-three{width:124px;height:104px;right:2%;bottom:15%;transform:rotate(-6deg)}
+body.intro-complete .hero .hero-art-four{width:106px;height:141px;left:2%;bottom:13%;transform:rotate(8deg)}
+body.intro-complete .hero .hero-art-five{width:106px;height:140px;right:15%;bottom:1%;transform:rotate(-5deg)}
+body.intro-complete .hero .hero-art-six{width:95px;height:127px;left:18%;top:4%;transform:rotate(7deg)}
+body.intro-complete .hero .hero-art-seven{width:106px;height:137px;left:17%;bottom:-2%;transform:rotate(-8deg)}
+body.intro-complete .hero .hero-art-eight{width:97px;height:128px;right:19%;top:5%;transform:rotate(-8deg)}
+body.intro-complete .hero .hero-art-nine{width:95px;height:125px;right:28%;bottom:4%;transform:rotate(8deg)}
+body.intro-complete .hero .hero-art-ten{width:99px;height:126px;left:0;top:41%;transform:rotate(-6deg)}
+body.intro-complete .hero .hero-art-eleven{width:101px;height:129px;right:0;top:38%;transform:rotate(8deg)}
+body.intro-complete .hero .hero-art-twelve{width:88px;height:112px;left:30%;top:4%;transform:rotate(-3deg)}
+body.intro-complete .scroll-note { left:50% !important; bottom:28px; z-index:4; transform:translateX(-50%) !important; white-space:nowrap; }
+.ticker > div { animation:none; width:100%; justify-content:center; gap:26px; }
+@media (max-width:800px) { body.intro-complete .hero .hero-art-one{left:2%;top:17%} body.intro-complete .hero .hero-art-two{right:2%;top:17%} body.intro-complete .hero .hero-art-three{right:0;bottom:20%} body.intro-complete .hero .hero-art-four{left:0;bottom:20%} .ticker > div { justify-content:flex-start; width:max-content; gap:20px; padding-left:20px; } }
+
+body.intro-complete .hero { isolation:isolate; }
+body.intro-complete .hero-copy { z-index:4; }
+body.intro-complete .hero-kicker { z-index:4; }
+body.intro-complete .hero .hero-art { z-index:2; }
+body.intro-complete .hero .hero-art-one{--dx:7px;--dy:-8px;--drift-delay:-1.3s}
+body.intro-complete .hero .hero-art-two{--dx:-8px;--dy:8px;--drift-delay:-3.7s}
+body.intro-complete .hero .hero-art-three{--dx:-7px;--dy:-6px;--drift-delay:-2.1s}
+body.intro-complete .hero .hero-art-four{--dx:7px;--dy:7px;--drift-delay:-4.2s}
+body.intro-complete .hero .hero-art-five{--dx:5px;--dy:-9px;--drift-delay:-.7s}
+body.intro-complete .hero .hero-art-six{--dx:-6px;--dy:8px;--drift-delay:-3.2s}
+body.intro-complete .hero .hero-art-seven{--dx:8px;--dy:-6px;--drift-delay:-1.8s}
+body.intro-complete .hero .hero-art-eight{--dx:7px;--dy:7px;--drift-delay:-4.7s}
+body.intro-complete .hero .hero-art-nine{--dx:-8px;--dy:-6px;--drift-delay:-2.6s}
+body.intro-complete .hero .hero-art-ten{--dx:6px;--dy:5px;--drift-delay:-.4s}
+body.intro-complete .hero .hero-art-eleven{--dx:-5px;--dy:-8px;--drift-delay:-3.9s}
+body.intro-complete .hero .hero-art-twelve{--dx:5px;--dy:7px;--drift-delay:-5.1s}
+body.intro-complete .hero .hero-art { animation:float 7s ease-in-out var(--drift-delay) infinite, card-drift 6.5s ease-in-out var(--drift-delay) infinite !important; }
+@keyframes card-drift { 0%,100% { translate:0 0; } 48% { translate:var(--dx) var(--dy); } }
+body.intro-complete .hero-kicker { top:112px; padding:5px 10px; background:var(--paper); }
+@media (max-width:800px) { body.intro-complete .hero .hero-art-one{top:18%} body.intro-complete .hero .hero-art-two{top:18%} }
+
+/* The source contained a second, unused override sheet. Its conflicting final-position rules are intentionally not loaded. */
