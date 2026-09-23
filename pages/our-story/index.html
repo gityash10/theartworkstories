@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
+
+    <meta
+        name="description"
+        content="The Story of Artwork — a journey through human creativity, the stories behind what we make, and why it all matters."
+    />
+
+    <title>Story of Artwork — The ArtWork Stories</title>
+
+    <!-- Existing site styles -->
+    <link rel="stylesheet" href="../../css/base/reset.css" />
+    <link rel="stylesheet" href="../../css/base/variables.css" />
+    <link rel="stylesheet" href="../../css/base/typography.css" />
+    <link rel="stylesheet" href="../../css/base/global.css" />
+
+    <!-- Story page back button -->
+    <style>
+        .story-back-button {
+            position: fixed;
+            top: 28px;
+            right: 32px;
+            z-index: 1000;
+
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            color: #ffffff;
+            text-decoration: none;
+
+            font-family: "DM Sans", sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+
+            opacity: 0.9;
+
+            transition:
+                opacity 0.25s ease,
+                transform 0.25s ease;
+        }
+
+        .story-back-button:hover {
+            opacity: 1;
+            transform: translateX(-3px);
+        }
+
+        .story-back-arrow {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        @media (max-width: 768px) {
+            .story-back-button {
+                top: 20px;
+                right: 20px;
+                font-size: 13px;
+            }
+
+            .story-back-arrow {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Back to main website -->
+    <a
+        href="../home/index.html"
+        class="story-back-button"
+        aria-label="Back to home"
+    >
+        <span class="story-back-arrow" aria-hidden="true">←</span>
+        <span>Back</span>
+    </a>
+
+    <!-- React Story application -->
+    <main id="story-root"></main>
+
+    <!-- Existing site navigation script is NOT needed here -->
+    <!-- The Story page has its own React interactions -->
+
+    <!-- React entry point -->
+    <script
+        type="module"
+        src="../../story/src/main.tsx"
+    ></script>
+
+</body>
+</html>
