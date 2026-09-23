@@ -5,6 +5,7 @@ import heroCollage from "../../../assets/images/story/hero-collage.jpg";
 import journeyCollage from "../../../assets/images/story/journey-collage.jpg";
 import pearlPortrait from "../../../assets/images/story/pearl-portrait.jpg";
 import storyMosaic from "../../../assets/images/story/story-mosaic.jpg";
+import coverforfour from "../../../assets/images/story/coverforfour.jpg";
 
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +27,7 @@ const chapters = [
   },
   {
     title: "A World Without Art",
-    image: storyMosaic,
+    image: coverforfour,
     position: "44% center",
   },
   {
@@ -52,38 +53,63 @@ const chapters = [
 ] as const;
 
 const chapterCopy = [
-  [
-    "Because being human has never been only about surviving.",
-    "We painted the walls. We shaped stone into figures. We turned sounds into music. We made things that had no obvious purpose except to mean something to us.",
-  ],
-  [
-    "Art has always reached beyond the object itself.",
-    "A picture can outlive its maker. A song can hold a century. What we create becomes a bridge between lives that never meet.",
-  ],
-  [
-    "The most powerful part of art is often the one we cannot point to.",
-    "It lives between memory and imagination—in the feeling that arrives before language can explain it.",
-  ],
-  [
-    "Imagine a life shaped only by function.",
-    "No songs at celebrations, no pictures on walls, no stories before sleep. Art is not decoration. It is evidence that we were here.",
-  ],
-  [
-    "Every work carries more than its materials.",
-    "Look closely and you will find a place, a person, a question, or a moment preserved against time.",
-  ],
-  [
-    "We exist to notice, preserve, and pass these stories on.",
-    "Not to explain away their mystery, but to make space for the conversation each artwork begins.",
-  ],
-  [
-    "This is for the curious and the careful observers.",
-    "For those who pause in front of a canvas and wonder about the hand, the hour, and the life behind it.",
-  ],
-  [
-    "Every mark begins somewhere.",
-    "A private impulse becomes a shared object. The story keeps changing with every person willing to look.",
-  ],
+  {
+    statement: "Why have humans always felt the need to create?",
+    story:
+      "Before we knew how to write history, we were already making art. We painted on walls, carved figures from stone, turned rhythm into music, and passed stories from one generation to another. Art was never simply decoration. It was one of the earliest ways we made sense of ourselves and the world around us.",
+    emphasis:
+      "We didn't create art because we had everything figured out. We created it because we had something to say.",
+  },
+  {
+    statement: "Art has always been bigger than the object itself.",
+    story:
+      "A painting is more than pigment on a surface. A sculpture is more than stone. A song is more than sound. Behind every creation is a person, a place, a time, an emotion, or an idea. The object is what remains visible, but its meaning can travel far beyond it.",
+    emphasis:
+      "The artwork may be an object. The story is what makes it human.",
+  },
+  {
+    statement:
+      "The most important part of an artwork is often the part we cannot see.",
+    story:
+      "We can look at colours, shapes, textures and materials. But we cannot always see the memory that inspired them, the struggle behind them, or the feeling that made someone create them. Context changes the way we see. Knowing the story behind an artwork can turn something familiar into something deeply personal.",
+    emphasis:
+      "Sometimes, to really see an artwork, we first have to understand what we cannot see.",
+  },
+  {
+    statement:
+      "Imagine a world where nothing was created just because it mattered to someone.",
+    story:
+      "No songs to remember moments. No paintings to preserve memories. No stories passed between generations. No sculptures, photographs, performances, poems or designs that existed simply because someone wanted to express something. Life might still function. But something deeply human would be missing.",
+    emphasis:
+      "Art is not something extra we added to life. It became part of what life means.",
+  },
+  {
+    statement: "Every artwork begins with a story.",
+    story:
+      "Sometimes the story belongs to the artist. Sometimes it belongs to the people, culture or moment that surrounded the work. Sometimes a story is hidden in a small detail that most people walk past. Every artwork carries traces of where it came from and why it came into existence.",
+    emphasis:
+      "Every artwork leaves something behind. A moment. A thought. A feeling. A story.",
+  },
+  {
+    statement: "That is why The ArtWork Stories exists.",
+    story:
+      "We wanted a place where people could go beyond simply looking at an artwork. A place to discover the artist, the history, the meaning, the context and the human story behind what they see. Not to tell people what they should feel, but to give them enough of the story to begin their own conversation with the art.",
+    emphasis:
+      "We don't want to tell you what art means. We want to help you discover why it matters.",
+  },
+  {
+    statement: "This is for people who stop and look twice.",
+    story:
+      "For the curious. For the people who wonder who made something, why they made it, what was happening around them, and what they were trying to say. For artists, students, collectors, researchers, casual observers and anyone who has ever felt something in front of an artwork without knowing exactly why.",
+    emphasis:
+      "You don't need to be an art expert. You only need to care enough to look.",
+  },
+  {
+    statement: "Because every art has a story.",
+    story:
+      "Some stories are famous.\nSome belong to history.\nSome belong to artists whose names we all know.\nOthers belong to someone sitting alone in their bedroom, making something nobody has seen yet.\n\nSome stories took years.\nSome took five minutes.\nSome were carefully planned.\nSome happened by accident.\n\nBut every time a human being creates something and says,",
+    emphasis: "",
+  },
 ] as const;
 
 function Story() {
@@ -103,17 +129,16 @@ function Story() {
     setActive(index);
 
     window.setTimeout(() => {
-      document
-        .querySelector("#chapter")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+      document.querySelector("#chapter")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
     }, 50);
   };
 
   return (
     <main className="story-page min-h-screen overflow-hidden bg-background text-foreground">
+
       {/* HERO */}
       <section className="relative mx-auto min-h-[760px] max-w-[1600px] px-5 pb-8 sm:px-8 lg:min-h-[820px] lg:px-12">
         <div
@@ -142,7 +167,6 @@ function Story() {
               <span className="flex size-8 items-center justify-center rounded-full border border-foreground/50">
                 <ArrowDown className="size-3" />
               </span>
-
               Scroll to explore
             </a>
           </div>
@@ -227,6 +251,7 @@ function Story() {
         className="mx-auto max-w-[1510px] px-4 sm:px-8 lg:px-12"
       >
         <article className="grid min-h-[510px] overflow-hidden rounded-[28px] bg-paper text-ink lg:grid-cols-[0.48fr_1.15fr_1.22fr]">
+
           {/* Chapter information */}
           <div className="flex flex-col p-8 sm:p-10 lg:p-12">
             <span className="font-sans text-xs">
@@ -240,7 +265,7 @@ function Story() {
             <span className="mt-8 h-px w-8 bg-ink/40" />
 
             <p className="mt-8 max-w-44 font-sans text-sm leading-5 text-ink/70">
-              {copy[0]}
+              {copy.statement}
             </p>
 
             <span className="mt-auto pt-10 font-sans text-[10px] text-ink/50">
@@ -274,29 +299,52 @@ function Story() {
 
           {/* Story copy */}
           <div className="relative flex flex-col justify-center p-8 font-sans sm:p-10 lg:p-14">
-            <p className="max-w-md text-sm leading-6 text-ink/65">
-              We could have built shelters and stopped there.
-              <br />
-              We could have made food simply to eat.
-              <br />
-              We could have lived without colours, music or stories.
-            </p>
 
-            <p className="mt-6 text-sm font-bold">
-              But we didn’t.
-            </p>
+            {active === 7 ? (
+              /* =====================================================
+                 CHAPTER 08 — EVERY ART HAS A STORY
+                 ===================================================== */
+              <>
+                <div className="max-w-xl whitespace-pre-line text-sm leading-6 text-ink/65">
+                  {copy.story}
+                </div>
 
-            <p className="mt-6 max-w-md text-sm leading-6 text-ink/65">
-              {copy[1]}
-            </p>
+                <p className="mt-8 max-w-xl font-display text-2xl leading-tight text-ink">
+                  “This is how I see the world.”
+                </p>
 
-            <p className="mt-6 max-w-md font-display text-lg">
-              That is one of the most beautiful things about being human —
-              we don’t only ask <em>“Does this work?”</em>
-              <br />
-              We also ask <strong>“Does this feel right?”</strong>
-            </p>
+                <p className="mt-3 max-w-xl font-display text-lg leading-tight text-ink/80">
+                  there is a story <em>worth hearing.</em>
+                </p>
+              </>
+            ) : (
+              /* =====================================================
+                 CHAPTERS 01–07
+                 ===================================================== */
+              <>
+                <p className="max-w-md text-sm leading-6 text-ink/65">
+                  We could have built shelters and stopped there.
+                  <br />
+                  We could have made food simply to eat.
+                  <br />
+                  We could have lived without colours, music or stories.
+                </p>
 
+                <p className="mt-6 text-sm font-bold">
+                  But we didn’t.
+                </p>
+
+                <p className="mt-6 max-w-md text-sm leading-6 text-ink/65">
+                  {copy.story}
+                </p>
+
+                <p className="mt-6 max-w-md font-display text-lg">
+                  {copy.emphasis}
+                </p>
+              </>
+            )}
+
+            {/* Next chapter */}
             <Button
               variant="ghost"
               className="mt-8 w-fit gap-4 px-0 text-ink hover:bg-transparent"
@@ -308,6 +356,7 @@ function Story() {
               <ArrowRight />
             </Button>
 
+            {/* Chapter progress */}
             <div
               className="absolute right-5 top-1/2 hidden -translate-y-1/2 flex-col gap-2 lg:flex"
               aria-hidden="true"
@@ -369,7 +418,7 @@ function Story() {
           variant="outline"
           className="absolute bottom-10 right-8 z-20 rounded-full border-foreground/45 bg-transparent px-6 text-foreground hover:bg-foreground hover:text-background lg:right-16"
         >
-          <a href="mailto:stories@example.com">
+          <a href="../signup/index.html">
             Continue the journey
             <ArrowRight />
           </a>
