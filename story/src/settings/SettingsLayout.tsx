@@ -17,7 +17,12 @@ import {
   HelpCircle,
   Lock,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+import {
+  loadAppearance,
+  useAppliedAppearance,
+} from "./preferences";
 
 type SettingsSection =
   | "account"
@@ -102,6 +107,20 @@ export default function SettingsLayout({
   const [menuOpen, setMenuOpen] = useState(false);
   const [shareQuestionOpen, setShareQuestionOpen] = useState(false);
 
+  /*
+   * Apply the saved appearance preferences (accent, text size,
+   * theme) to the Settings section. Scoped via CSS custom
+   * properties so nothing outside Settings changes.
+   */
+  const appearance = useMemo(() => loadAppearance(), []);
+  useAppliedAppearance(appearance);
+
+  useEffect(() => {
+    return () => {
+      delete document.documentElement.dataset.tasSettingsTheme;
+    };
+  }, []);
+
   const openShareQuestion = () => {
     setShareQuestionOpen(true);
   };
@@ -115,7 +134,7 @@ export default function SettingsLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#f4eee2] text-[#211f1b]">
+    <div className="tas-settings-root min-h-screen bg-[#f4eee2] text-[#211f1b]">
       {/* =========================================================
           DESKTOP GLOBAL SIDEBAR
           Same visual language as Discover
@@ -357,9 +376,41 @@ export default function SettingsLayout({
             </p>
           </div>
 
+          {/* Settings sub-navigation (mobile): horizontally scrollable */}
+          <nav
+            className="tas-settings-subnav mb-6 -mx-5 flex gap-2 overflow-x-auto px-5 pb-1 lg:hidden"
+            aria-label="Settings sections"
+          >
+            {settingsItems.map((item) => {
+              const Icon = item.icon;
+              const active = item.id === activeSection;
+
+              return (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm transition ${
+                    active
+                      ? "border-transparent text-white"
+                      : "border-black/10 bg-white/45 text-black/65 hover:bg-white/70"
+                  }`}
+                  style={
+                    active
+                      ? { backgroundColor: "var(--tas-accent, #24231f)" }
+                      : undefined
+                  }
+                >
+                  <Icon className="size-4 shrink-0" />
+                  <span>{item.label}</span>
+                </a>
+              );
+            })}
+          </nav>
+
           <div className="grid gap-7 lg:grid-cols-[245px_minmax(0,1fr)]">
             {/* Settings navigation */}
-            <aside className="h-fit rounded-2xl border border-black/10 bg-white/35 p-3">
+            <aside className="hidden h-fit rounded-2xl border border-black/10 bg-white/35 p-3 lg:block">
               <p className="px-4 pb-3 pt-2 text-[10px] uppercase tracking-[0.22em] text-black/35">
                 Settings
               </p>

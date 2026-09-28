@@ -247,3 +247,124 @@
     box-shadow: 0 0 0 3px rgba(29, 27, 26, 0.06);
   }
 }
+
+
+/* =========================================================
+   SETTINGS SECTION (scoped)
+
+   Theme surfaces for the Settings pages only. The appearance
+   preference writes --tas-accent, --tas-settings-zoom and
+   data-tas-settings-theme on <html>; nothing outside Settings
+   reads them, so the rest of the app keeps its exact look.
+========================================================= */
+
+:root {
+  --tas-accent: #24231f;
+  --tas-settings-zoom: 1;
+}
+
+.tas-settings-root {
+  background-color: #f4eee2;
+  color: #211f1b;
+  zoom: var(--tas-settings-zoom);
+}
+
+.tas-settings-root .tas-card {
+  background-color: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tas-settings-root .tas-subtle {
+  background-color: rgba(0, 0, 0, 0.025);
+}
+
+.tas-settings-root .tas-input {
+  background-color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #1d1b1a;
+}
+
+.tas-settings-root .tas-input::placeholder {
+  color: rgba(29, 27, 26, 0.35);
+}
+
+.tas-settings-root .tas-input:focus {
+  border-color: rgba(0, 0, 0, 0.28);
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+.tas-settings-root .tas-muted {
+  color: rgba(33, 31, 27, 0.5);
+}
+
+.tas-settings-root .tas-header {
+  background-color: #f4eee2;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.tas-settings-root .tas-chip {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.tas-settings-root .tas-modal {
+  background-color: #f4eee2;
+}
+
+/* Dark theme (Settings pages only) */
+
+html[data-tas-settings-theme="dark"] .tas-settings-root {
+  background-color: #1b1915;
+  color: #ece5d8;
+}
+
+html[data-tas-settings-theme="dark"] .tas-settings-root .tas-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-tas-settings-theme="dark"] .tas-settings-root .tas-subtle {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+html[data-tas-settings-theme="dark"] .tas-settings-root .tas-input {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ece5d8;
+}
+
+html[data-tas-settings-theme="dark"] .tas-settings-root .tas-input::placeholder {
+  color: rgba(236, 229, 216, 0.4);
+}
+
+html[data-tas-settings-theme="dark"] .tas-settings-root .tas-input:focus {
+  border-color: rgba(255, 255, 255, 0.32);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-tas-settings-theme="dark"] .tas-settings-root .tas-muted {
+  color: rgba(236, 229, 216, 0.55);
+}
+
+html[data-tas-settings-theme="dark"] .tas-settings-root .tas-header {
+  background-color: #1b1915;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-tas-settings-theme="dark"] .tas-settings-root .tas-chip {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-tas-settings-theme="dark"] .tas-settings-root .tas-modal {
+  background-color: #26231e;
+  color: #ece5d8;
+}
+
+/* Mobile settings sub-navigation (horizontal scroller) */
+
+.tas-settings-subnav {
+  scrollbar-width: none;
+}
+
+.tas-settings-subnav::-webkit-scrollbar {
+  display: none;
+}

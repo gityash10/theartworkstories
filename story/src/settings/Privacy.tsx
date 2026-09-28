@@ -1,7 +1,30 @@
 import { Eye, Globe2, Heart, Search, Users } from "lucide-react";
+import { useState } from "react";
+
 import SettingsLayout from "./SettingsLayout";
+import { loadPrivacy, savePrivacy, type PrivacySettings } from "./preferences";
+import { SavedBadge, Toggle, useSavedIndicator } from "./ui";
+
+/* ===============================================================
+   PRIVACY SETTINGS
+
+   All controls persist instantly to localStorage
+   ("the-artwork-stories-settings-privacy") with a subtle
+   "Saved" confirmation.
+   =============================================================== */
 
 export default function Privacy() {
+  const [settings, setSettings] = useState<PrivacySettings>(loadPrivacy);
+  const [savedFlash, flashSaved, savedLabel] = useSavedIndicator();
+
+  const change = (partial: Partial<PrivacySettings>) => {
+    const next = { ...settings, ...partial };
+
+    setSettings(next);
+    savePrivacy(next);
+    flashSaved();
+  };
+
   return (
     <SettingsLayout
       activeSection="privacy"
@@ -9,10 +32,11 @@ export default function Privacy() {
       description="Control who can see your profile and activity."
     >
       <div className="space-y-6">
-        <section className="rounded-2xl border border-black/10 bg-white/45">
+        {/* Profile visibility */}
+        <section className="tas-card overflow-hidden rounded-2xl border border-black/10 bg-white/45">
           <div className="border-b border-black/10 px-6 py-5 sm:px-8">
             <h2 className="font-display text-2xl">Profile Visibility</h2>
-            <p className="mt-1 text-sm text-black/50">
+            <p className="tas-muted mt-1 text-sm text-black/50">
               Choose who can view your profile and artworks.
             </p>
           </div>
@@ -22,27 +46,33 @@ export default function Privacy() {
               icon={Globe2}
               title="Public"
               description="Anyone can view your profile and artworks."
-              selected
+              selected={settings.profileVisibility === "public"}
+              onSelect={() => change({ profileVisibility: "public" })}
             />
 
             <VisibilityOption
               icon={Users}
               title="Community Only"
               description="Only registered members can view your profile."
+              selected={settings.profileVisibility === "community"}
+              onSelect={() => change({ profileVisibility: "community" })}
             />
 
             <VisibilityOption
               icon={Eye}
               title="Private"
               description="Only you can view your profile."
+              selected={settings.profileVisibility === "private"}
+              onSelect={() => change({ profileVisibility: "private" })}
             />
           </div>
         </section>
 
-        <section className="rounded-2xl border border-black/10 bg-white/45">
+        {/* Activity visibility */}
+        <section className="tas-card overflow-hidden rounded-2xl border border-black/10 bg-white/45">
           <div className="border-b border-black/10 px-6 py-5 sm:px-8">
             <h2 className="font-display text-2xl">Activity Visibility</h2>
-            <p className="mt-1 text-sm text-black/50">
+            <p className="tas-muted mt-1 text-sm text-black/50">
               Choose what other people can see about your activity.
             </p>
           </div>
@@ -52,38 +82,51 @@ export default function Privacy() {
               icon={Users}
               title="Show my collections"
               description="Allow others to see your collections."
-              enabled
+              enabled={settings.showCollections}
+              onChange={(value) => change({ showCollections: value })}
             />
 
             <ToggleRow
               icon={Heart}
               title="Show my liked artworks"
               description="Allow others to see artworks you like."
+              enabled={settings.showLikedArtworks}
+              onChange={(value) => change({ showLikedArtworks: value })}
             />
 
             <ToggleRow
               icon={Eye}
               title="Show my activity"
               description="Show follows, likes and other activity."
-              enabled
+              enabled={settings.showActivity}
+              onChange={(value) => change({ showActivity: value })}
             />
           </div>
         </section>
 
-        <section className="rounded-2xl border border-black/10 bg-white/45 p-6 sm:p-8">
+        {/* Search visibility */}
+        <section className="tas-card rounded-2xl border border-black/10 bg-white/45 p-6 sm:p-8">
           <div className="flex items-start gap-4">
             <Search className="mt-0.5 size-5 shrink-0 text-black/55" />
 
             <div className="min-w-0 flex-1">
               <h2 className="font-display text-xl">Search Visibility</h2>
-              <p className="mt-1 text-sm text-black/50">
+              <p className="tas-muted mt-1 text-sm text-black/50">
                 Allow your profile to appear in search results.
               </p>
             </div>
 
-            <Toggle enabled />
+            <Toggle
+              checked={settings.allowSearchIndexing}
+              label="Allow profile to appear in search"
+              onChange={(value) => change({ allowSearchIndexing: value })}
+            />
           </div>
         </section>
+
+        <div className="flex justify-end">
+          <SavedBadge show={savedFlash} label={savedLabel} />
+        </div>
       </div>
     </SettingsLayout>
   );
@@ -94,15 +137,20 @@ function VisibilityOption({
   title,
   description,
   selected = false,
+  onSelect,
 }: {
   icon: React.ElementType;
   title: string;
   description: string;
   selected?: boolean;
+  onSelect: () => void;
 }) {
   return (
     <button
       type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
       className={`flex w-full items-start gap-4 rounded-xl border p-4 text-left transition ${
         selected
           ? "border-black/20 bg-black/[0.035]"
@@ -111,8 +159,9 @@ function VisibilityOption({
     >
       <span
         className={`mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full ${
-          selected ? "bg-[#24231f] text-white" : "bg-black/[0.05]"
+          selected ? "text-white" : "tas-chip bg-black/[0.05]"
         }`}
+        style={selected ? { backgroundColor: "var(--tas-accent, #24231f)" } : undefined}
       >
         <Icon className="size-4" />
       </span>
@@ -126,10 +175,16 @@ function VisibilityOption({
 
       <span
         className={`mt-2 size-4 shrink-0 rounded-full border ${
-          selected
-            ? "border-[#24231f] bg-[#24231f] ring-4 ring-black/5"
-            : "border-black/20"
+          selected ? "ring-4 ring-black/5" : "border-black/20"
         }`}
+        style={
+          selected
+            ? {
+                borderColor: "var(--tas-accent, #24231f)",
+                backgroundColor: "var(--tas-accent, #24231f)",
+              }
+            : undefined
+        }
       />
     </button>
   );
@@ -139,12 +194,14 @@ function ToggleRow({
   icon: Icon,
   title,
   description,
-  enabled = false,
+  enabled,
+  onChange,
 }: {
   icon: React.ElementType;
   title: string;
   description: string;
-  enabled?: boolean;
+  enabled: boolean;
+  onChange: (value: boolean) => void;
 }) {
   return (
     <div className="flex items-center gap-4 px-6 py-5 sm:px-8">
@@ -152,26 +209,10 @@ function ToggleRow({
 
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{title}</p>
-        <p className="mt-1 text-xs text-black/45">{description}</p>
+        <p className="tas-muted mt-1 text-xs text-black/45">{description}</p>
       </div>
 
-      <Toggle enabled={enabled} />
+      <Toggle checked={enabled} onChange={onChange} label={title} />
     </div>
-  );
-}
-
-function Toggle({ enabled = false }: { enabled?: boolean }) {
-  return (
-    <span
-      className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-        enabled ? "bg-[#24231f]" : "bg-black/15"
-      }`}
-    >
-      <span
-        className={`absolute top-1 size-4 rounded-full bg-white shadow-sm transition ${
-          enabled ? "left-6" : "left-1"
-        }`}
-      />
-    </span>
   );
 }
