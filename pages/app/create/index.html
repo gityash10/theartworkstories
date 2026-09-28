@@ -611,15 +611,391 @@
 
         }
 
+        /* =====================================================
+           GLOBAL SIDEBAR
+           Same global navigation as the other app pages.
+           ===================================================== */
+
+        .app-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 50;
+            display: none;
+            width: 220px;
+            height: 100vh;
+            flex-direction: column;
+            background: #1d1c19;
+            color: #f5efe4;
+        }
+
+        @media (min-width: 1024px) {
+
+            .app-sidebar {
+                display: flex;
+            }
+
+            .create-page {
+                margin-left: 220px;
+            }
+
+        }
+
+        .sidebar-logo {
+            display: block;
+            padding: 28px 28px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: "DM Serif Display", Georgia, serif;
+            font-size: 24px;
+            line-height: 0.95;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 32px;
+            padding: 0 12px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: rgba(245, 239, 228, 0.7);
+            text-decoration: none;
+            transition: 0.2s ease;
+        }
+
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-quote {
+            margin-top: auto;
+            padding: 0 28px 32px;
+            font-family: "DM Serif Display", Georgia, serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: rgba(245, 239, 228, 0.55);
+        }
+
+        /* =====================================================
+           SHARE TYPE QUESTION (direct entry)
+           Shown when the page is opened without ?type,
+           i.e. outside the Discover question flow.
+           ===================================================== */
+
+        .share-type-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #f4eee2;
+        }
+
+        .share-type-gate.hidden {
+            display: none;
+        }
+
+        .share-type-card {
+            position: relative;
+            width: min(520px, 100%);
+            padding: 30px;
+            border: 1px solid rgba(33, 31, 27, 0.08);
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.38);
+        }
+
+        .share-type-title {
+            max-width: 430px;
+            margin-top: 14px;
+            font-family: "DM Serif Display", Georgia, serif;
+            font-size: clamp(2.2rem, 5vw, 3.2rem);
+            font-weight: 400;
+            line-height: 0.95;
+            letter-spacing: -0.03em;
+        }
+
+        .share-type-description {
+            max-width: 430px;
+            margin-top: 18px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: rgba(33, 31, 27, 0.58);
+        }
+
+        .share-type-options {
+            display: grid;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .share-type-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            width: 100%;
+            padding: 20px;
+            border: 1px solid rgba(33, 31, 27, 0.1);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+            transition: 0.2s ease;
+        }
+
+        .share-type-option:hover {
+            transform: translateY(-2px);
+            border-color: rgba(33, 31, 27, 0.2);
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .share-type-option-title {
+            display: block;
+            font-family: "DM Serif Display", Georgia, serif;
+            font-size: 22px;
+            font-weight: 400;
+        }
+
+        .share-type-option-text {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(33, 31, 27, 0.5);
+        }
+
+        .share-type-option-arrow {
+            flex-shrink: 0;
+            font-size: 20px;
+            transition: transform 0.2s ease;
+        }
+
+        .share-type-option:hover .share-type-option-arrow {
+            transform: translateX(4px);
+        }
+
+        .share-type-close {
+            position: absolute;
+            right: 18px;
+            top: 18px;
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(33, 31, 27, 0.06);
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .share-type-close:hover {
+            background: rgba(33, 31, 27, 0.12);
+        }
+
+        .share-type-footnote {
+            margin-top: 22px;
+            text-align: center;
+            font-size: 11px;
+            color: rgba(33, 31, 27, 0.35);
+        }
+
     </style>
 </head>
 
 
 <body>
 
+<!-- =====================================================
+     GLOBAL SIDEBAR
+     Same global navigation as Discover, Collections,
+     Profile etc. (desktop only).
+     ===================================================== -->
+
+<aside class="app-sidebar">
+
+    <a
+        href="../../../home/index.html"
+        class="sidebar-logo"
+    >
+        The ArtWork
+        <br />
+        Stories
+    </a>
+
+    <nav class="sidebar-nav">
+
+        <a
+            href="../discover/index.html"
+            class="sidebar-link"
+        >
+            ◍
+            Discover
+        </a>
+
+        <a
+            href="../collections/index.html"
+            class="sidebar-link"
+        >
+            ▣
+            Collections
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <a
+            href="../create/index.html?from=share-artwork"
+            class="sidebar-link active"
+        >
+            +
+            Share an Artwork
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <a
+            href="../profile/index.html"
+            class="sidebar-link"
+        >
+            ◉
+            Profile
+        </a>
+
+        <a
+            href="#"
+            class="sidebar-link"
+        >
+            ⚙
+            Settings
+        </a>
+
+    </nav>
+
+    <div class="sidebar-quote">
+        “Art is a conversation
+        <br />
+        across time.”
+    </div>
+
+</aside>
+
+
 <main class="create-page">
 
     <div class="create-container">
+
+
+        <!-- =================================================
+             SHARE TYPE QUESTION (direct entry)
+
+             Discover opens this page with ?type=own|other and
+             asks this question first. When someone arrives
+             without that parameter (e.g. the sidebar link),
+             ask the same question here before showing the form.
+             ================================================= -->
+
+        <div
+            id="share-type-gate"
+            class="share-type-gate hidden"
+        >
+
+            <div class="share-type-card">
+
+                <button
+                    id="share-type-close"
+                    class="share-type-close"
+                    type="button"
+                    aria-label="Close"
+                >
+                    ×
+                </button>
+
+                <p class="eyebrow">
+                    Before you share
+                </p>
+
+                <h2 class="share-type-title">
+                    Whose artwork
+                    <br />
+                    are you sharing?
+                </h2>
+
+                <p class="share-type-description">
+                    This helps us show the right information and give proper
+                    context to every artwork shared on The ArtWork Stories.
+                </p>
+
+                <div class="share-type-options">
+
+                    <button
+                        type="button"
+                        class="share-type-option"
+                        data-share-type="own"
+                    >
+
+                        <span>
+                            <span class="share-type-option-title">
+                                I created this artwork
+                            </span>
+
+                            <span class="share-type-option-text">
+                                Share your own work and tell the story behind
+                                what you created.
+                            </span>
+                        </span>
+
+                        <span class="share-type-option-arrow">→</span>
+
+                    </button>
+
+                    <button
+                        type="button"
+                        class="share-type-option"
+                        data-share-type="other"
+                    >
+
+                        <span>
+                            <span class="share-type-option-title">
+                                I'm sharing someone else's artwork
+                            </span>
+
+                            <span class="share-type-option-text">
+                                Give credit, add the source, and share the story
+                                or context behind the work.
+                            </span>
+                        </span>
+
+                        <span class="share-type-option-arrow">→</span>
+
+                    </button>
+
+                </div>
+
+                <p class="share-type-footnote">
+                    You can always change your mind before publishing.
+                </p>
+
+            </div>
+
+        </div>
 
 
         <!-- =================================================
@@ -1285,9 +1661,141 @@
 
     const params = new URLSearchParams(window.location.search);
 
+    /*
+     * Discover opens this page with ?type=own|other after
+     * asking "Whose artwork are you sharing?". When there is
+     * no type parameter (direct sidebar entry), ask the same
+     * question here first — same copy, same two choices.
+     */
+    const hasTypeParam = params.has("type");
+
     const shareType = params.get("type") === "other"
         ? "other"
         : "own";
+
+    const shareTypeGate =
+        document.getElementById("share-type-gate");
+
+    const shareTypeClose =
+        document.getElementById("share-type-close");
+
+    if (!hasTypeParam && shareTypeGate) {
+
+        shareTypeGate.classList.remove("hidden");
+
+        document.body.style.overflow = "hidden";
+
+    }
+
+    /*
+     * Origin page handling.
+     *
+     * The question card can be opened from any app page.
+     * Cancelling must return the user to the page they came
+     * from — never to a hardcoded page.
+     */
+    const APP_ORIGIN_PATHS = {
+        "discover": "../discover/index.html",
+        "collections": "../collections/index.html",
+        "collection": "../collection/index.html",
+        "create-collection": "../create-collection/index.html",
+        "my-collections": "../my-collections/index.html",
+        "profile": "../profile/index.html",
+        "edit-profile": "../profile/edit/index.html"
+    };
+
+    function getReturnToOriginUrl() {
+
+        /*
+         * 1. Exact page the user navigated from (preserves
+         *    query strings such as ?id=... on detail pages).
+         */
+        if (document.referrer) {
+
+            try {
+
+                const referrer = new URL(document.referrer);
+
+                if (referrer.origin === window.location.origin) {
+                    return referrer.pathname + referrer.search;
+                }
+
+            } catch {
+                /* Ignore malformed referrer URLs. */
+            }
+
+        }
+
+        /*
+         * 2. Explicit origin key passed by the launching page
+         *    (e.g. ?from=profile from the Profile sidebar).
+         */
+        const fromKey = params.get("from");
+
+        if (fromKey && APP_ORIGIN_PATHS[fromKey]) {
+            return APP_ORIGIN_PATHS[fromKey];
+        }
+
+        /*
+         * 3. No resolvable origin (direct URL entry):
+         *    stay on the Share an Artwork page.
+         */
+        return null;
+
+    }
+
+    function closeShareTypeGate() {
+
+        if (shareTypeGate) {
+            shareTypeGate.classList.add("hidden");
+        }
+
+        document.body.style.overflow = "";
+
+        const originUrl = getReturnToOriginUrl();
+
+        if (originUrl) {
+            window.location.href = originUrl;
+        }
+
+    }
+
+    if (shareTypeClose) {
+
+        shareTypeClose.addEventListener(
+            "click",
+            closeShareTypeGate
+        );
+
+    }
+
+    document
+        .querySelectorAll("[data-share-type]")
+        .forEach(
+            function(button) {
+
+                button.addEventListener(
+                    "click",
+                    function() {
+
+                        const chosen =
+                            this.dataset.shareType;
+
+                        if (shareTypeGate) {
+                            shareTypeGate.classList.add("hidden");
+                        }
+
+                        document.body.style.overflow = "";
+
+                        if (chosen === "other") {
+                            applyShareType("other");
+                        }
+
+                    }
+                );
+
+            }
+        );
 
 
     const pageTitle = document.getElementById("page-title");
@@ -1312,7 +1820,11 @@
        OWN / OTHER MODE
        ===================================================== */
 
-    if (shareType === "other") {
+    function applyShareType(type) {
+
+        if (type !== "other") {
+            return;
+        }
 
         pageTitle.innerHTML = `
             Share an
@@ -1334,6 +1846,8 @@
         sourceLinkInput.required = true;
 
     }
+
+    applyShareType(shareType);
 
 
     /* =====================================================

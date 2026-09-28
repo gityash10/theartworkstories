@@ -136,7 +136,7 @@ const creators = [
 ];
 
 const handleShareArtwork = () => {
-  window.location.href = "../create/index.html";
+  window.location.href = "../create/index.html?from=collections";
 };
 
 export default function CollectionsPage() {

@@ -255,6 +255,9 @@ function Discover() {
           </a>
 
 
+          <div className="my-2 h-px bg-white/10" />
+
+
           <button
             type="button"
             onClick={openShareQuestion}
@@ -269,6 +272,9 @@ function Discover() {
 
             {sidebarOpen && <span>Share an Artwork</span>}
           </button>
+
+
+          <div className="my-2 h-px bg-white/10" />
 
 
           <a
@@ -696,38 +702,6 @@ function Discover() {
                           />
 
                         </div>
-
-
-                        {/* FLOATING SHARE BUTTON */}
-
-                        {index === 2 && (
-
-                          <div className="absolute inset-0 z-20 flex items-center justify-center">
-
-                            <div className="flex flex-col items-center">
-
-                              <button
-                                type="button"
-                                onClick={openShareQuestion}
-                                aria-label="Share an artwork"
-                                className="group/share flex size-[76px] items-center justify-center rounded-full bg-[#24231f] text-white shadow-[0_14px_35px_rgba(0,0,0,0.30)] transition-all duration-300 hover:scale-110 hover:bg-black hover:shadow-[0_18px_45px_rgba(0,0,0,0.36)]"
-                              >
-
-                                <Plus
-                                  className="size-9 stroke-[1.5] transition-transform duration-300 group-hover/share:rotate-90"
-                                />
-
-                              </button>
-
-                              <span className="mt-3 whitespace-nowrap text-xs font-medium text-black/70">
-                                Share an Artwork
-                              </span>
-
-                            </div>
-
-                          </div>
-
-                        )}
 
                       </div>
 

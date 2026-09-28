@@ -15,6 +15,8 @@ import {
   type ChangeEvent,
 } from "react";
 
+import AppSidebar from "../components/AppSidebar";
+
 import {
   addArtworkToCollection,
   createCollection,
@@ -382,12 +384,15 @@ function CreateCollection() {
 
     <div className="min-h-screen bg-[#f4eee2] text-[#211f1b]">
 
+      <AppSidebar active="collections" />
+
+
 
       {/* ===================================================
           TOP BAR
           =================================================== */}
 
-      <header className="sticky top-0 z-50 flex h-[72px] items-center justify-between border-b border-black/10 bg-[#f4eee2]/95 px-5 backdrop-blur-md sm:px-8 lg:px-12">
+      <header className="sticky top-0 z-50 flex h-[72px] items-center justify-between border-b border-black/10 bg-[#f4eee2]/95 px-5 backdrop-blur-md sm:px-8 lg:pl-[260px] lg:pr-12">
 
 
         {/* BACK */}

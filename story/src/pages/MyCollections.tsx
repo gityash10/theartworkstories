@@ -1,6 +1,8 @@
 import { ArrowRight, FolderOpen, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import AppSidebar from "../components/AppSidebar";
+
 import { getCollections } from "../data/collections";
 import { availableArtworks } from "../data/artworks";
 import type { Collection } from "../types/collection";
@@ -46,7 +48,10 @@ export default function MyCollectionsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#f5f1e8] text-[#191816]">
+    <>
+      <AppSidebar active="collections" />
+
+      <main className="min-h-screen bg-[#f5f1e8] text-[#191816] lg:ml-[220px]">
       <header className="border-b border-black/10">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-5 lg:px-10">
           <div>
@@ -165,6 +170,7 @@ export default function MyCollectionsPage() {
           </div>
         )}
       </section>
-    </main>
+      </main>
+    </>
   );
 }

@@ -194,50 +194,56 @@
 
 /* =========================================================
    EDIT PROFILE INPUTS
+
+   Placed in the `components` layer so Tailwind utilities
+   (e.g. pl-10 / pr-11 used to make room for the leading
+   and trailing icons) can override the base padding.
 ========================================================= */
 
-.profile-input {
-  display: block;
-  width: 100%;
-  height: 46px;
-  border: 1px solid rgba(29, 27, 26, 0.12);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.58);
-  padding: 0 14px;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #1d1b1a;
-  outline: none;
-  transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
-    box-shadow 160ms ease;
-}
+@layer components {
+  .profile-input {
+    display: block;
+    width: 100%;
+    height: 46px;
+    border: 1px solid rgba(29, 27, 26, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.58);
+    padding: 0 14px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #1d1b1a;
+    outline: none;
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      box-shadow 160ms ease;
+  }
 
-.profile-input::placeholder {
-  color: rgba(29, 27, 26, 0.4);
-}
+  .profile-input::placeholder {
+    color: rgba(29, 27, 26, 0.4);
+  }
 
-.profile-input:hover {
-  border-color: rgba(29, 27, 26, 0.18);
-  background: rgba(255, 255, 255, 0.75);
-}
+  .profile-input:hover {
+    border-color: rgba(29, 27, 26, 0.18);
+    background: rgba(255, 255, 255, 0.75);
+  }
 
-.profile-input:focus {
-  border-color: rgba(29, 27, 26, 0.35);
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(29, 27, 26, 0.06);
-}
+  .profile-input:focus {
+    border-color: rgba(29, 27, 26, 0.35);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(29, 27, 26, 0.06);
+  }
 
-textarea.profile-input {
-  height: 112px;
-  min-height: 112px;
-  padding-top: 12px;
-  padding-bottom: 30px;
-  line-height: 1.55;
-}
+  textarea.profile-input {
+    height: 112px;
+    min-height: 112px;
+    padding-top: 12px;
+    padding-bottom: 30px;
+    line-height: 1.55;
+  }
 
-textarea.profile-input:focus {
-  box-shadow: 0 0 0 3px rgba(29, 27, 26, 0.06);
+  textarea.profile-input:focus {
+    box-shadow: 0 0 0 3px rgba(29, 27, 26, 0.06);
+  }
 }

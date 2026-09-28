@@ -1,21 +1,29 @@
 import {
+  Activity,
   ArrowLeft,
+  ArrowRight,
   Bell,
+  Bookmark,
   CalendarDays,
   Camera,
   Check,
+  Compass,
+  Edit3,
   Eye,
   Globe,
+  Heart,
   Link as LinkIcon,
   MapPin,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
+  Plus,
   Search,
   Settings,
   Trash2,
   User,
+  Users,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
@@ -28,7 +36,7 @@ const recentArtworks = [
     title: "The Persistence of Memory",
     artist: "Salvador Dalí",
     year: "1931",
-    image: "/assets/images/artworks/starry-night.jpg",
+    image: "/assets/images/artworks/starry-night.png",
   },
   {
     id: "artwork-2",
@@ -52,21 +60,21 @@ const myCollections = [
     title: "Art That Makes Me Think",
     description: "Works that stay with me long after I see them.",
     count: 18,
-    image: "/assets/images/artworks/the-thinker.jpg",
+    image: "/assets/images/artworks/the-thinker.png",
   },
   {
     id: "collection-2",
     title: "Quiet Moments",
     description: "Soft, intimate works for slower days.",
     count: 12,
-    image: "/assets/images/artworks/starry-night.jpg",
+    image: "/assets/images/artworks/starry-night.png",
   },
   {
     id: "collection-3",
     title: "Art & Memory",
     description: "Works connected to memory, time and identity.",
     count: 9,
-    image: "/assets/images/artworks/surreal-hand.jpg",
+    image: "/assets/images/artworks/surreal-hand.png",
   },
 ];
 
@@ -172,6 +180,69 @@ function ProfilePage() {
   const [avatarImage, setAvatarImage] = useState("");
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const [savedProfile, setSavedProfile] = useState<{
+    name: string;
+    username: string;
+    bio: string;
+    location: string;
+    website: string;
+    joinedDate: string;
+  } | null>(null);
+
+  /*
+   * Load the saved profile (same source as the Edit Profile page)
+   * so the hero reflects what the user saved there.
+   */
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(
+        "the-artwork-stories-profile",
+      );
+
+      if (!stored) {
+        return;
+      }
+
+      const parsed = JSON.parse(stored);
+
+      setSavedProfile({
+        name:
+          typeof parsed.name === "string"
+            ? parsed.name
+            : "Yash Jain",
+
+        username:
+          typeof parsed.username === "string"
+            ? parsed.username
+            : "@yashjain",
+
+        bio:
+          typeof parsed.bio === "string"
+            ? parsed.bio
+            : "Exploring the stories, ideas and emotions hidden inside great works of art.",
+
+        location:
+          typeof parsed.location === "string"
+            ? parsed.location
+            : "India",
+
+        website:
+          typeof parsed.website === "string"
+            ? parsed.website.trim()
+            : "",
+
+        joinedDate:
+          typeof parsed.joinedDate === "string"
+            ? parsed.joinedDate
+            : "2026",
+      });
+    } catch {
+      /*
+       * Ignore malformed localStorage data
+       * and keep the defaults.
+       */
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -213,6 +284,18 @@ function ProfilePage() {
     event.target.value = "";
   };
 
+  /*
+   * Build a safe href for the saved website value:
+   * full URLs pass through, bare domains get https://.
+   */
+  const savedWebsite = savedProfile?.website ?? "";
+
+  const websiteHref = savedWebsite
+    ? /^https?:\/\//i.test(savedWebsite)
+      ? savedWebsite
+      : `https://${savedWebsite}`
+    : "";
+
   const handleShareArtwork = () => {
     window.location.href = "../create/index.html";
   };
@@ -253,7 +336,7 @@ function ProfilePage() {
           <SidebarLink href="../discover/index.html" icon={Compass} label="Discover" collapsed={sidebarCollapsed} />
           <SidebarLink href="../collections/index.html" icon={Bookmark} label="Collections" collapsed={sidebarCollapsed} />
           <div className="my-2 h-px bg-white/10" />
-          <SidebarLink href="../create/index.html" icon={Plus} label="Share an Artwork" collapsed={sidebarCollapsed} />
+          <SidebarLink href="../create/index.html?from=profile" icon={Plus} label="Share an Artwork" collapsed={sidebarCollapsed} />
           <div className="my-2 h-px bg-white/10" />
           <SidebarLink href="../profile/index.html" icon={User} label="Profile" active collapsed={sidebarCollapsed} />
           <SidebarLink href="#" icon={Settings} label="Settings" collapsed={sidebarCollapsed} />
@@ -302,7 +385,7 @@ function ProfilePage() {
                 <nav className="absolute left-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-black/10 bg-[#24231f] p-2 text-white shadow-xl">
                   <SidebarLink href="../discover/index.html" icon={Compass} label="Discover" collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
                   <SidebarLink href="../collections/index.html" icon={Bookmark} label="Collections" collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
-                  <SidebarLink href="../create/index.html" icon={Plus} label="Share an Artwork" collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
+                  <SidebarLink href="../create/index.html?from=profile" icon={Plus} label="Share an Artwork" collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
                   <SidebarLink href="../profile/index.html" icon={User} label="Profile" active collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
                   <SidebarLink href="#" icon={Settings} label="Settings" collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
                 </nav>
@@ -417,37 +500,54 @@ function ProfilePage() {
                 <div className="max-w-[720px]">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <h1 className="font-display text-[42px] leading-none tracking-[-0.03em] text-[#1d1b1a] sm:text-[50px]">
-                      Yash Jain
+                      {savedProfile?.name ?? "Yash Jain"}
                     </h1>
 
                     <span className="text-sm text-black/45">
-                      @yashjain
+                      {savedProfile?.username ?? "@yashjain"}
                     </span>
                   </div>
 
                   <p className="mt-4 max-w-[680px] text-[15px] leading-7 text-[#2d2925]/70">
-                    Exploring the stories, ideas and emotions
-                    hidden inside great works of art.
+                    {savedProfile?.bio ??
+                      "Exploring the stories, ideas and emotions hidden inside great works of art."}
                   </p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#2d2925]/55">
                     <span className="inline-flex items-center gap-1.5">
                       <MapPin className="size-3.5" />
-                      India
+                      {savedProfile?.location ?? "India"}
                     </span>
 
-                    <span>Joined 2026</span>
+                    {savedWebsite && (
+                      <a
+                        href={websiteHref}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="inline-flex max-w-[260px] items-center gap-1.5 transition hover:text-[#1d1b1a]"
+                      >
+                        <LinkIcon className="size-3.5 shrink-0" />
+
+                        <span className="min-w-0 truncate">
+                          {savedWebsite}
+                        </span>
+                      </a>
+                    )}
+
+                    <span>
+                      Joined {savedProfile?.joinedDate ?? "2026"}
+                    </span>
                   </div>
                 </div>
 
                 {/* Edit Profile */}
-                <button
-                  href="../profile/edit/index.html"
+                <a
+                  href="./edit/index.html"
                   className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#1d1b1a] px-5 text-sm font-medium text-white transition hover:bg-[#302d2a]"
                 >
                   <Edit3 className="size-4" />
                   Edit Profile
-                </button>
+                </a>
               </div>
 
               {/* Stats */}

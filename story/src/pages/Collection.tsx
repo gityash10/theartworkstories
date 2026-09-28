@@ -41,6 +41,7 @@ import {
   availableArtworks,
   type Artwork,
 } from "../data/artworks";
+import AppSidebar from "../components/AppSidebar";
 
 import type { Collection } from "../types/collection";
 
@@ -450,7 +451,10 @@ export default function CollectionPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f5f1e8] text-[#191816]">
+    <>
+      <AppSidebar active="collections" />
+
+      <main className="min-h-screen bg-[#f5f1e8] text-[#191816] lg:ml-[220px]">
       {/* TOP BAR */}
       <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f5f1e8]/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-4 lg:px-10">
@@ -1403,7 +1407,8 @@ export default function CollectionPage() {
           </div>
         </Modal>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 

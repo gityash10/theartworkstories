@@ -1,9 +1,11 @@
 import {
   ArrowLeft,
   Bell,
+  Bookmark,
   CalendarDays,
   Camera,
   Check,
+  Compass,
   Eye,
   Globe,
   Link as LinkIcon,
@@ -287,11 +289,11 @@ function EditProfilePage() {
       // Ignore localStorage errors.
     }
 
-    setSaved(true);
-
-    window.setTimeout(() => {
-      setSaved(false);
-    }, 1800);
+    /*
+     * Return to the Profile page after saving so the
+     * user sees their changes applied.
+     */
+    window.location.href = "../index.html";
   };
 
   /*
@@ -313,117 +315,123 @@ function EditProfilePage() {
       ===================================================== */}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 hidden border-r border-white/10 bg-[#1d1b1a] transition-all duration-300 lg:flex lg:flex-col ${
+        className={`fixed left-0 top-0 z-40 hidden h-screen flex-col bg-[#1d1c19] text-[#f5efe4] transition-all duration-300 lg:flex ${
           sidebarCollapsed
-            ? "w-[76px]"
-            : "w-[240px]"
+            ? "w-[72px]"
+            : "w-[220px]"
         }`}
       >
         {/* Sidebar Header */}
         <div
-          className={`flex h-20 items-center ${
+          className={`border-b border-white/10 py-7 transition-all ${
             sidebarCollapsed
-              ? "justify-center px-3"
-              : "justify-between px-4"
+              ? "px-3"
+              : "px-7"
           }`}
         >
-          {!sidebarCollapsed && (
-            <a
-              href="../../discover/index.html"
-              className="truncate font-display text-lg leading-tight text-white"
-            >
-              The ArtWork
-              <br />
-              Stories
-            </a>
-          )}
-
-          <button
-            type="button"
-            onClick={() =>
-              setSidebarCollapsed(
-                (value) => !value,
-              )
-            }
-            aria-label={
+          <a
+            href="../../home/index.html"
+            className={`block font-display leading-[0.95] ${
               sidebarCollapsed
-                ? "Open sidebar"
-                : "Collapse sidebar"
-            }
-            title={
-              sidebarCollapsed
-                ? "Open sidebar"
-                : "Collapse sidebar"
-            }
-            className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white/65 transition hover:bg-white/10 hover:text-white"
+                ? "text-center text-[18px]"
+                : "text-[24px]"
+            }`}
           >
             {sidebarCollapsed ? (
-              <PanelLeftOpen className="size-5" />
+              "TAS"
             ) : (
-              <PanelLeftClose className="size-5" />
+              <>
+                The ArtWork
+                <br />
+                Stories
+              </>
             )}
-          </button>
+          </a>
         </div>
 
+        {/* Sidebar Toggle */}
+        <button
+          type="button"
+          onClick={() =>
+            setSidebarCollapsed(
+              (value) => !value,
+            )
+          }
+          aria-label={
+            sidebarCollapsed
+              ? "Expand sidebar"
+              : "Collapse sidebar"
+          }
+          className={`absolute -right-3 top-[78px] flex size-7 items-center justify-center rounded-full border border-white/10 bg-[#24231f] text-white shadow-lg transition hover:scale-105 ${
+            sidebarCollapsed ? "rotate-180" : ""
+          }`}
+        >
+          {sidebarCollapsed ? (
+            <PanelLeftOpen className="size-3.5" />
+          ) : (
+            <PanelLeftClose className="size-3.5" />
+          )}
+        </button>
+
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4">
-          <div className="space-y-1">
+        <nav className="mt-8 flex flex-col gap-2 px-3">
 
-            <SidebarLink
-              href="../../discover/index.html"
-              icon={Search}
-              label="Discover"
-              collapsed={sidebarCollapsed}
-            />
+          <SidebarLink
+            href="../../discover/index.html"
+            icon={Compass}
+            label="Discover"
+            collapsed={sidebarCollapsed}
+          />
 
-            <SidebarLink
-              href="../../collections/index.html"
-              icon={Settings}
-              label="Collections"
-              collapsed={sidebarCollapsed}
-            />
+          <SidebarLink
+            href="../../collections/index.html"
+            icon={Bookmark}
+            label="Collections"
+            collapsed={sidebarCollapsed}
+          />
 
-            <div className="my-4 h-px bg-white/10" />
+          <div className="my-2 h-px bg-white/10" />
 
-            <SidebarLink
-              href="../../../contribution/index.html"
-              icon={Plus}
-              label="Share an Artwork"
-              collapsed={sidebarCollapsed}
-            />
+          <SidebarLink
+            href="../../create/index.html?from=edit-profile"
+            icon={Plus}
+            label="Share an Artwork"
+            collapsed={sidebarCollapsed}
+          />
 
-            <div className="my-4 h-px bg-white/10" />
+          <div className="my-2 h-px bg-white/10" />
 
-            <SidebarLink
-              href="../index.html"
-              icon={User}
-              label="Profile"
-              active
-              collapsed={sidebarCollapsed}
-            />
+          <SidebarLink
+            href="../index.html"
+            icon={User}
+            label="Profile"
+            active
+            collapsed={sidebarCollapsed}
+          />
 
-            <SidebarLink
-              href="#"
-              icon={Settings}
-              label="Settings"
-              collapsed={sidebarCollapsed}
-            />
+          <SidebarLink
+            href="#"
+            icon={Settings}
+            label="Settings"
+            collapsed={sidebarCollapsed}
+          />
 
-          </div>
         </nav>
 
         {/* Sidebar Quote */}
         {!sidebarCollapsed && (
-          <div className="px-7 pb-8">
-            <div className="h-px w-12 bg-white/25" />
+          <div className="mt-auto px-7 pb-8">
 
-            <p className="mt-5 font-display text-[17px] leading-6 text-white/75">
-              "Art is a conversation
+            <div className="mb-5 h-px bg-white/10" />
+
+            <p className="font-display text-sm leading-6 text-white/55">
+              “Art is a conversation
               <br />
-              across time."
+              across time.”
             </p>
 
-            <div className="mt-5 h-px w-12 bg-white/25" />
+            <div className="mt-5 h-px w-8 bg-white/40" />
+
           </div>
         )}
       </aside>
@@ -472,14 +480,14 @@ function EditProfilePage() {
 
                 <SidebarLink
                   href="../../discover/index.html"
-                  icon={Search}
+                  icon={Compass}
                   label="Discover"
                   onClick={closeMobileSidebar}
                 />
 
                 <SidebarLink
                   href="../../collections/index.html"
-                  icon={Settings}
+                  icon={Bookmark}
                   label="Collections"
                   onClick={closeMobileSidebar}
                 />
@@ -487,7 +495,7 @@ function EditProfilePage() {
                 <div className="my-4 h-px bg-white/10" />
 
                 <SidebarLink
-                  href="../../../contribution/index.html"
+                  href="../../create/index.html?from=edit-profile"
                   icon={Plus}
                   label="Share an Artwork"
                   onClick={closeMobileSidebar}
@@ -523,8 +531,8 @@ function EditProfilePage() {
       <main
         className={`min-h-screen transition-all duration-300 ${
           sidebarCollapsed
-            ? "lg:pl-[76px]"
-            : "lg:pl-[240px]"
+            ? "lg:pl-[72px]"
+            : "lg:pl-[220px]"
         }`}
       >
 
@@ -980,7 +988,7 @@ function EditProfilePage() {
                   <div className="px-5 pb-5">
 
                     {/* Preview avatar */}
-                    <div className="-mt-11 flex size-[86px] items-center justify-center overflow-hidden rounded-full border-4 border-[#f5f2ea] bg-[#d4b99e] shadow-md">
+                    <div className="relative z-10 -mt-11 flex size-[86px] items-center justify-center overflow-hidden rounded-full border-4 border-[#f5f2ea] bg-[#d4b99e] shadow-md">
 
                       {profileImage ? (
                         <img
