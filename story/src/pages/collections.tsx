@@ -370,13 +370,13 @@ export default function CollectionsPage() {
           </div>
 
           <div className="ml-5 hidden items-center gap-6 sm:flex">
-            <button
-              type="button"
-              className="text-black/65 transition hover:text-black"
-              aria-label="Notifications"
-            >
-              <Bell className="size-5" />
-            </button>
+  <a
+    href="/pages/app/notifications/index.html"
+    className="text-black/65 transition hover:text-black"
+    aria-label="Notifications"
+  >
+    <Bell className="size-5" />
+  </a>
 
             <button type="button" className="flex items-center gap-3">
               <span className="flex size-9 items-center justify-center rounded-full bg-[#292723] text-sm text-white">

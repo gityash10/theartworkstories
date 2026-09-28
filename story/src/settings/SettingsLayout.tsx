@@ -339,38 +339,7 @@ export default function SettingsLayout({
           sidebarOpen ? "lg:ml-[220px]" : "lg:ml-[72px]"
         }`}
       >
-        {/* Top bar */}
-        <div className="sticky top-0 z-30 flex h-[78px] items-center justify-between border-b border-black/5 bg-[#f4eee2]/95 px-5 backdrop-blur-md sm:px-8 lg:px-10">
-          <div className="relative w-full max-w-[800px]">
-            <SearchIcon />
-
-            <input
-              type="search"
-              placeholder="Search artworks, artists, styles, or anything..."
-              className="h-11 w-full rounded-xl border border-black/5 bg-black/[0.035] pl-12 pr-5 text-sm outline-none transition placeholder:text-black/40 focus:border-black/20 focus:bg-white/60"
-            />
-          </div>
-
-          <div className="ml-5 hidden items-center gap-6 sm:flex">
-            <button
-              type="button"
-              className="text-black/65 transition hover:text-black"
-              aria-label="Notifications"
-            >
-              <Bell className="size-5" />
-            </button>
-
-            <button type="button" className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-full bg-[#292723] text-sm text-white">
-                Y
-              </span>
-
-              <span className="hidden text-sm xl:block">Hi, Yash</span>
-
-              <ChevronDown className="size-4" />
-            </button>
-          </div>
-        </div>
+        
 
         {/* Content */}
         <div className="mx-auto max-w-[1250px] px-5 py-8 sm:px-8 lg:px-10">

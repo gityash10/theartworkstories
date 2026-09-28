@@ -404,14 +404,14 @@ function ProfilePage() {
             </div>
 
             {/* Header Right */}
-            <div className="hidden items-center gap-3 sm:flex">
-              <button
-                type="button"
-                className="flex size-10 items-center justify-center rounded-full border border-black/10 bg-white/50 text-[#1d1b1a] transition hover:bg-white"
-                aria-label="Notifications"
-              >
-                <BellIcon />
-              </button>
+            <div className="ml-5 hidden items-center gap-6 sm:flex">
+  <a
+    href="/pages/app/notifications/index.html"
+    className="text-black/65 transition hover:text-black"
+    aria-label="Notifications"
+  >
+    <Bell className="size-5" />
+  </a>
 
               <div className="flex size-10 items-center justify-center rounded-full bg-[#d4b99e] text-xs font-semibold">
                 Y
