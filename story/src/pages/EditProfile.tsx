@@ -24,6 +24,8 @@ import {
 import type { ChangeEvent, ReactNode } from "react";
 import { useEffect, useState } from "react";
 
+import AccountDropdown from "../components/AccountDropdown";
+
 const DEFAULT_COVER =
   "/assets/images/story/hero-collage.jpg";
 
@@ -577,7 +579,8 @@ function EditProfilePage() {
                 <Bell className="size-5" />
               </button>
 
-              <div className="hidden items-center gap-3 sm:flex">
+              <AccountDropdown className="hidden sm:flex">
+                <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-full bg-[#1d1b1a] text-sm font-medium text-white">
                   Y
                 </div>
@@ -589,7 +592,8 @@ function EditProfilePage() {
                 <span className="text-xs text-black/50">
                   ⌄
                 </span>
-              </div>
+                </div>
+              </AccountDropdown>
 
             </div>
           </div>

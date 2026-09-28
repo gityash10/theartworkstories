@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import AccountDropdown from "../components/AccountDropdown";
+
 const categories = [
   "All",
   "Painting",
@@ -132,6 +134,7 @@ function Discover() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const [shareQuestionOpen, setShareQuestionOpen] = useState(false);
+  
 
   const openShareQuestion = () => {
     setShareQuestionOpen(true);
@@ -454,10 +457,7 @@ function Discover() {
   <Bell className="size-5" />
 </a>
 
-            <button
-              type="button"
-              className="flex items-center gap-3"
-            >
+            <AccountDropdown>
               <span className="flex size-9 items-center justify-center rounded-full bg-[#292723] text-sm text-white">
                 Y
               </span>
@@ -467,7 +467,7 @@ function Discover() {
               </span>
 
               <ChevronDown className="size-4" />
-            </button>
+            </AccountDropdown>
 
           </div>
 
@@ -889,52 +889,45 @@ function Discover() {
 
                 <div className="grid gap-4 sm:grid-cols-3">
 
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-black/10 bg-white/30 p-6 text-left transition hover:-translate-y-1 hover:bg-white/50"
-                  >
+                  <a
+  href="/pages/app/artists/index.html"
+  className="rounded-2xl border border-black/10 bg-white/30 p-6 text-left transition hover:-translate-y-1 hover:bg-white/50"
+>
+  <span className="text-2xl">○</span>
 
-                    <span className="text-2xl">
-                      ◌
-                    </span>
+  <h3 className="mt-6 font-display text-2xl">
+    Find an artist
+  </h3>
 
-                    <h3 className="mt-6 font-display text-2xl">
-                      Find an artist
-                    </h3>
+  <p className="mt-2 text-xs leading-5 text-black/50">
+    Discover artists, their work and the stories behind what they create.
+  </p>
 
-                    <p className="mt-2 text-xs leading-5 text-black/50">
-                      Discover people creating work worth knowing.
-                    </p>
-
-                    <span className="mt-5 block text-xs">
-                      Explore artists →
-                    </span>
-
-                  </button>
+  <span className="mt-5 block text-xs">
+    Meet the artists →
+  </span>
+</a>
 
 
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-black/10 bg-white/30 p-6 text-left transition hover:-translate-y-1 hover:bg-white/50"
-                  >
+                  <a
+  href="/pages/app/stories/index.html"
+  className="rounded-2xl border border-black/10 bg-white/30 p-6 text-left transition hover:-translate-y-1 hover:bg-white/50"
+>
+  <span className="text-2xl">○</span>
 
-                    <span className="text-2xl">
-                      ◇
-                    </span>
+  <h3 className="mt-6 font-display text-2xl">
+    Browse Stories
+  </h3>
 
-                    <h3 className="mt-6 font-display text-2xl">
-                      Browse stories
-                    </h3>
+  <p className="mt-2 text-xs leading-5 text-black/50">
+    Read the stories that live behind the art.
+  </p>
 
-                    <p className="mt-2 text-xs leading-5 text-black/50">
-                      Read the stories that live behind the art.
-                    </p>
+  <span className="mt-5 block text-xs">
+    Read the stories →
+  </span>
+</a>
 
-                    <span className="mt-5 block text-xs">
-                      Read stories →
-                    </span>
-
-                  </button>
 
 
                   <button
@@ -996,12 +989,12 @@ function Discover() {
                   that cares about art and its stories.
                 </p>
 
-                <button
-                  type="button"
-                  className="mt-5 w-full rounded-lg bg-[#24231f] px-5 py-3 text-sm text-white transition hover:bg-black"
-                >
-                  Start exploring →
-                </button>
+                <a
+  href="/pages/app/explore/index.html"
+  className="mt-5 block w-full rounded-lg bg-[#24231f] px-5 py-3 text-center text-sm text-white transition hover:bg-black"
+>
+  Start exploring →
+</a>
 
               </div>
 
@@ -1119,15 +1112,12 @@ function Discover() {
 
                   </div>
 
-                  <button
-                    type="button"
-                    className="mt-5 flex items-center gap-2 text-xs font-medium text-white transition hover:gap-3"
-                  >
-                    Read the story
-                    <span aria-hidden="true">
-                      →
-                    </span>
-                  </button>
+                  <a
+  href="/pages/app/story-of-week/index.html"
+  className="inline-block text-xs transition hover:text-black/60"
+>
+  Read the story →
+</a>
 
                 </div>
 

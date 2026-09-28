@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import AccountDropdown from "../components/AccountDropdown";
+
 const categories = [
   "All",
   "Community",
@@ -378,7 +380,8 @@ export default function CollectionsPage() {
     <Bell className="size-5" />
   </a>
 
-            <button type="button" className="flex items-center gap-3">
+            <AccountDropdown>
+              <button type="button" className="flex items-center gap-3">
               <span className="flex size-9 items-center justify-center rounded-full bg-[#292723] text-sm text-white">
                 Y
               </span>
@@ -387,6 +390,7 @@ export default function CollectionsPage() {
 
               <ChevronDown className="size-4" />
             </button>
+            </AccountDropdown>
           </div>
         </div>
 

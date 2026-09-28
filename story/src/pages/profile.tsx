@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
+import AccountDropdown from "../components/AccountDropdown";
+
 type Tab = "Overview" | "Artworks" | "Collections" | "Liked" | "Activity";
 
 const recentArtworks = [
@@ -413,9 +415,11 @@ function ProfilePage() {
     <Bell className="size-5" />
   </a>
 
-              <div className="flex size-10 items-center justify-center rounded-full bg-[#d4b99e] text-xs font-semibold">
-                Y
-              </div>
+              <AccountDropdown>
+                <div className="flex size-10 items-center justify-center rounded-full bg-[#d4b99e] text-xs font-semibold">
+                  Y
+                </div>
+              </AccountDropdown>
             </div>
           </div>
         </header>
