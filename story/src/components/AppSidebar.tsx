@@ -106,7 +106,7 @@ export default function AppSidebar({ active }: AppSidebarProps) {
           {open && <span>Profile</span>}
         </a>
 
-        <a href="#" title="Settings" className={linkClass(false)}>
+        <a href="../settings/account/index.html" title="Settings" className={linkClass(false)}>
           <Settings className="size-5 shrink-0" />
           {open && <span>Settings</span>}
         </a>

@@ -293,7 +293,7 @@ function Discover() {
 
 
           <a
-            href="#"
+            href="../settings/account/index.html"
             title="Settings"
             className={`flex items-center rounded-md py-3 text-sm text-white/70 transition hover:bg-white/5 hover:text-white ${
               sidebarOpen
@@ -401,7 +401,7 @@ function Discover() {
             </a>
 
             <a
-              href="#"
+              href="../settings/account/index.html"
               className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm hover:bg-white/10"
               onClick={() => setMenuOpen(false)}
             >
