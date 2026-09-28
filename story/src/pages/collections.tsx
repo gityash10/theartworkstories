@@ -711,14 +711,15 @@ export default function CollectionsPage() {
   ================================================= */}
   <section className="rounded-[22px] bg-[#e5dcc9] p-5 shadow-[0_12px_30px_rgba(21,17,13,0.04)]">
     <div className="flex items-start justify-between gap-4">
-      <h4 className="font-display text-[28px] leading-[0.95] text-[#1d1b1a]">
-        Popular
-        <br />
-        Creators
-      </h4>
+      <a
+  href="/pages/app/creators/index.html"
+  className="block transition hover:opacity-70"
+>
+  Popular Creators →
+</a>
 
       <a
-        href="#"
+        href="/pages/app/creators/index.html"
         className="pt-1 text-[14px] leading-5 text-[#2d2925]/75 transition hover:text-[#1d1b1a]"
       >
         See all

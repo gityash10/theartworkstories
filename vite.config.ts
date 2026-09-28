@@ -48,6 +48,7 @@ export default defineConfig({
         storyofWeek: page("pages/app/story-of-week/index.html"),
         artists: page("pages/app/artists/index.html"),
         stories: page("pages/app/stories/index.html"),
+        creators: page("pages/app/creators/index.html",),
       },
     },
   },
