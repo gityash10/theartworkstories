@@ -8,7 +8,7 @@ The page loads DM Sans for interface and body text, DM Mono for labels and navig
 
 ## Colors
 
-The palette is defined in `css/base/variables.css`: ink and paper form the primary contrast, with peach, red, lime, and a translucent ink line used as accents.
+The palette is defined in `front-end/css/base/variables.css`: ink and paper form the primary contrast, with peach, red, lime, and a translucent ink line used as accents.
 
 ## Spacing
 
@@ -16,4 +16,4 @@ Layout spacing is expressed with viewport-relative values, fixed compact control
 
 ## Visual Principles
 
-The existing design combines an editorial serif/sans pairing, restrained mono labels, framed artwork, thin rules, collage movement, and subtle paper grain. Reusable controls and navigation styles belong in component styles; landing-page composition belongs in `css/pages/home.css`.
+The existing design combines an editorial serif/sans pairing, restrained mono labels, framed artwork, thin rules, collage movement, and subtle paper grain. Reusable controls and navigation styles belong in component styles; landing-page composition belongs in `front-end/css/pages/home.css`.

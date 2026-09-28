@@ -14,15 +14,16 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "types": ["vite/client"],
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["story/src/*"]
+      "@/*": ["front-end/story/src/*"]
     }
   },
   "include": [
-    "story/src/**/*.ts",
-    "story/src/**/*.tsx",
+    "front-end/story/src/**/*.ts",
+    "front-end/story/src/**/*.tsx",
     "vite.config.ts"
   ]
 }
