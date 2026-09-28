@@ -17,3 +17,6 @@ coverage/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Freebuff workspace metadata
+.freebuff/
