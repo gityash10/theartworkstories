@@ -35,7 +35,7 @@ export default function Account() {
               <p className="mt-1 text-sm text-black/50">@yashjain</p>
 
               <a
-                href="../profile/index.html"
+                href="/pages/app/profile/index.html"
                 className="mt-4 inline-flex items-center gap-2 text-sm underline underline-offset-4"
               >
                 View Profile
@@ -109,7 +109,7 @@ export default function Account() {
 
             <div className="flex flex-wrap gap-3 pt-2">
               <a
-                href="../profile/edit/index.html"
+                href="/pages/app/profile/edit/index.html"
                 className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#24231f] px-5 text-sm text-white hover:bg-black"
               >
                 <Pencil className="size-4" />

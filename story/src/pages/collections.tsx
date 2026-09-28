@@ -243,7 +243,7 @@ export default function CollectionsPage() {
           </a>
 
           <a
-            href="#"
+            href="/pages/app/settings/account/index.html"
             title="Settings"
             className={`flex items-center rounded-md py-3 text-sm text-white/70 transition hover:bg-white/5 hover:text-white ${
               sidebarOpen ? "gap-4 px-5" : "justify-center px-0"
@@ -336,7 +336,7 @@ export default function CollectionsPage() {
             </a>
 
             <a
-              href="#"
+              href="/pages/app/settings/account/index.html"
               className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm hover:bg-white/10"
               onClick={() => setMenuOpen(false)}
             >

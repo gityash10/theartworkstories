@@ -339,7 +339,7 @@ function ProfilePage() {
           <SidebarLink href="../create/index.html?from=profile" icon={Plus} label="Share an Artwork" collapsed={sidebarCollapsed} />
           <div className="my-2 h-px bg-white/10" />
           <SidebarLink href="../profile/index.html" icon={User} label="Profile" active collapsed={sidebarCollapsed} />
-          <SidebarLink href="#" icon={Settings} label="Settings" collapsed={sidebarCollapsed} />
+          <SidebarLink href="/pages/app/settings/account/index.html" icon={Settings} label="Settings" collapsed={sidebarCollapsed} />
         </nav>
 
         {!sidebarCollapsed && (
@@ -387,7 +387,7 @@ function ProfilePage() {
                   <SidebarLink href="../collections/index.html" icon={Bookmark} label="Collections" collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
                   <SidebarLink href="../create/index.html?from=profile" icon={Plus} label="Share an Artwork" collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
                   <SidebarLink href="../profile/index.html" icon={User} label="Profile" active collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
-                  <SidebarLink href="#" icon={Settings} label="Settings" collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
+                  <SidebarLink href="/pages/app/settings/account/index.html" icon={Settings} label="Settings" collapsed={false} onClick={() => setMobileSidebarOpen(false)} />
                 </nav>
               )}
             </div>

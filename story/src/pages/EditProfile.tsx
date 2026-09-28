@@ -410,7 +410,7 @@ function EditProfilePage() {
           />
 
           <SidebarLink
-            href="#"
+            href="/pages/app/settings/account/index.html"
             icon={Settings}
             label="Settings"
             collapsed={sidebarCollapsed}
@@ -512,7 +512,7 @@ function EditProfilePage() {
                 />
 
                 <SidebarLink
-                  href="#"
+                  href="/pages/app/settings/account/index.html"
                   icon={Settings}
                   label="Settings"
                   onClick={closeMobileSidebar}
