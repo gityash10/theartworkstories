@@ -3,6 +3,26 @@
     {
       "source": "/",
       "destination": "/pages/home/index.html"
+    },
+    {
+      "source": "/login/:path*",
+      "destination": "/pages/login/:path*"
+    },
+    {
+      "source": "/signup/:path*",
+      "destination": "/pages/signup/:path*"
+    },
+    {
+      "source": "/contribution/:path*",
+      "destination": "/pages/contribution/:path*"
+    },
+    {
+      "source": "/our-story/:path*",
+      "destination": "/pages/our-story/:path*"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/pages/app/:path*"
     }
   ]
 }
