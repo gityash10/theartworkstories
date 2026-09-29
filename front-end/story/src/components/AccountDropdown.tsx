@@ -1,5 +1,8 @@
 import { LogOut, Settings, User } from "lucide-react";
+import { signOut } from "firebase/auth";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+
+import { auth } from "../firebase";
 
 type AccountDropdownProps = {
   /**
@@ -23,8 +26,8 @@ type AccountDropdownProps = {
    - Click the account button to open / close.
    - Click anywhere outside to close (document-level pointerdown).
    - Press Escape to close.
-   - Profile and Settings are plain <a> links; Log out is a
-     frontend-only placeholder (no auth yet).
+   - Profile and Settings are plain <a> links; Log out signs the
+     user out with Firebase Auth and returns to the login page.
    =============================================================== */
 
 export default function AccountDropdown({
@@ -108,7 +111,18 @@ export default function AccountDropdown({
           <button
             type="button"
             role="menuitem"
-            onClick={() => setOpen(false)}
+            onClick={async () => {
+              try {
+                await signOut(auth);
+
+                /* Firebase session cleared — return to login. */
+                window.location.href = "/pages/login/index.html";
+              } catch (error) {
+                /* Keep the menu usable if sign-out fails. */
+                console.error("Logout error:", error);
+                setOpen(false);
+              }
+            }}
             className={`${itemClass} w-full text-left`}
           >
             <LogOut className="size-4" />

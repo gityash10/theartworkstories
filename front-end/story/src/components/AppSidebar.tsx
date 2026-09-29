@@ -6,6 +6,7 @@ import {
   Plus,
   Settings,
   User,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -14,9 +15,23 @@ type AppSidebarProps = {
    * Which item is highlighted as the current page.
    */
   active: "discover" | "collections" | "profile";
+  /**
+   * Optional controlled open state for the mobile drawer (below lg).
+   * When provided, the sidebar renders as a slide-in drawer on mobile
+   * instead of being hidden.
+   */
+  mobileOpen?: boolean;
+  /**
+   * Called when the user closes the mobile drawer.
+   */
+  onMobileClose?: () => void;
 };
 
-export default function AppSidebar({ active }: AppSidebarProps) {
+export default function AppSidebar({
+  active,
+  mobileOpen = false,
+  onMobileClose,
+}: AppSidebarProps) {
   const [open, setOpen] = useState(true);
 
   const linkClass = (isActive: boolean) =>
@@ -28,8 +43,12 @@ export default function AppSidebar({ active }: AppSidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 hidden h-screen flex-col bg-[#1d1c19] text-[#f5efe4] transition-all duration-300 lg:flex ${
+      className={`fixed left-0 top-0 z-50 h-screen flex-col bg-[#1d1c19] text-[#f5efe4] transition-all duration-300 lg:flex ${
         open ? "w-[220px]" : "w-[72px]"
+      } ${
+        mobileOpen
+          ? "flex translate-x-0"
+          : "hidden -translate-x-full lg:translate-x-0"
       }`}
     >
       {/* LOGO */}
@@ -55,6 +74,18 @@ export default function AppSidebar({ active }: AppSidebarProps) {
           )}
         </a>
       </div>
+
+      {/* MOBILE CLOSE */}
+      {onMobileClose && (
+        <button
+          type="button"
+          onClick={onMobileClose}
+          aria-label="Close menu"
+          className="absolute right-4 top-8 rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white lg:hidden"
+        >
+          <X className="size-5" />
+        </button>
+      )}
 
       {/* SIDEBAR TOGGLE */}
       <button

@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
-import { Bell, ChevronDown, Heart, Menu, Search, X } from "lucide-react";
+import { Bell, ChevronDown, Menu, Search } from "lucide-react";
+
+import AccountDropdown from "../components/AccountDropdown";
+import AppSidebar from "../components/AppSidebar";
 
 type Creator = {
   id: number;
@@ -70,7 +73,6 @@ const creators: Creator[] = [
 
 function Creators() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [following, setFollowing] = useState<number[]>([]);
 
@@ -107,69 +109,12 @@ function Creators() {
         />
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[250px] border-r border-black/10 bg-[#f5f2eb] px-6 py-7 transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <a
-            href="/pages/home/index.html"
-            className="font-display text-xl tracking-tight"
-          >
-            The ArtWork Stories
-          </a>
-
-          <button
-            type="button"
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-            aria-label="Close sidebar"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        <nav className="mt-12 space-y-2">
-          <a
-            href="/pages/app/discover/index.html"
-            className="block rounded-lg px-3 py-2.5 text-sm text-black/60 transition hover:bg-black/5 hover:text-black"
-          >
-            Discover
-          </a>
-
-          <a
-            href="/pages/app/collections/index.html"
-            className="block rounded-lg px-3 py-2.5 text-sm text-black/60 transition hover:bg-black/5 hover:text-black"
-          >
-            Collections
-          </a>
-
-          <a
-            href="/pages/app/create/index.html"
-            className="mt-5 block rounded-lg bg-black/[0.04] px-3 py-2.5 text-sm transition hover:bg-black/[0.07]"
-          >
-            Share an Artwork
-          </a>
-
-          <div className="my-5 border-t border-black/10" />
-
-          <a
-            href="/pages/app/profile/index.html"
-            className="block rounded-lg px-3 py-2.5 text-sm text-black/60 transition hover:bg-black/5 hover:text-black"
-          >
-            Profile
-          </a>
-
-          <a
-            href="/pages/app/settings/account/index.html"
-            className="block rounded-lg px-3 py-2.5 text-sm text-black/60 transition hover:bg-black/5 hover:text-black"
-          >
-            Settings
-          </a>
-        </nav>
-      </aside>
+      {/* GLOBAL SIDEBAR */}
+      <AppSidebar
+        active="discover"
+        mobileOpen={sidebarOpen}
+        onMobileClose={() => setSidebarOpen(false)}
+      />
 
       <main className="lg:pl-[250px]">
         {/* Header */}
@@ -203,55 +148,15 @@ function Creators() {
               <Bell className="size-5" />
             </a>
 
-            <div className="relative hidden sm:block">
-              <button
-                type="button"
-                onClick={() => setAccountOpen((open) => !open)}
-                className="flex items-center gap-2 text-sm"
-              >
-                <span className="flex size-8 items-center justify-center rounded-full bg-[#24231f] text-xs text-white">
-                  Y
-                </span>
+            <AccountDropdown className="hidden sm:block">
+              <span className="flex size-8 items-center justify-center rounded-full bg-[#24231f] text-xs text-white">
+                Y
+              </span>
 
-                <span className="hidden md:block">Yash</span>
+              <span className="hidden md:block">Yash</span>
 
-                <ChevronDown
-                  className={`size-4 transition-transform ${
-                    accountOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {accountOpen && (
-                <div className="absolute right-0 top-11 w-52 rounded-xl border border-black/10 bg-white p-2 shadow-xl">
-                  <div className="border-b border-black/10 px-3 py-3">
-                    <p className="text-sm font-medium">Yash Jain</p>
-                    <p className="mt-0.5 text-xs text-black/45">@yashjain</p>
-                  </div>
-
-                  <a
-                    href="/pages/app/profile/index.html"
-                    className="mt-1 block rounded-lg px-3 py-2 text-sm hover:bg-black/5"
-                  >
-                    Profile
-                  </a>
-
-                  <a
-                    href="/pages/app/settings/account/index.html"
-                    className="block rounded-lg px-3 py-2 text-sm hover:bg-black/5"
-                  >
-                    Settings
-                  </a>
-
-                  <button
-                    type="button"
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-black/50 hover:bg-black/5"
-                  >
-                    Log out
-                  </button>
-                </div>
-              )}
-            </div>
+              <ChevronDown className="size-4" />
+            </AccountDropdown>
           </div>
         </header>
 

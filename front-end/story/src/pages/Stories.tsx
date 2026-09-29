@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Bell, ChevronDown, Heart, Menu, Search, X } from "lucide-react";
 
+import AccountDropdown from "../components/AccountDropdown";
+
 type Story = {
   id: number;
   title: string;
@@ -85,7 +87,6 @@ const categories = [
 
 function Stories() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [likedStories, setLikedStories] = useState<number[]>([]);
@@ -223,55 +224,15 @@ function Stories() {
               <Bell className="size-5" />
             </a>
 
-            <div className="relative hidden sm:block">
-              <button
-                type="button"
-                onClick={() => setAccountOpen((open) => !open)}
-                className="flex items-center gap-2 text-sm"
-              >
-                <span className="flex size-8 items-center justify-center rounded-full bg-[#24231f] text-xs text-white">
-                  Y
-                </span>
+            <AccountDropdown className="hidden sm:block">
+              <span className="flex size-8 items-center justify-center rounded-full bg-[#24231f] text-xs text-white">
+                Y
+              </span>
 
-                <span className="hidden md:block">Yash</span>
+              <span className="hidden md:block">Yash</span>
 
-                <ChevronDown
-                  className={`size-4 transition-transform ${
-                    accountOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {accountOpen && (
-                <div className="absolute right-0 top-11 w-52 rounded-xl border border-black/10 bg-white p-2 shadow-xl">
-                  <div className="border-b border-black/10 px-3 py-3">
-                    <p className="text-sm font-medium">Yash Jain</p>
-                    <p className="mt-0.5 text-xs text-black/45">@yashjain</p>
-                  </div>
-
-                  <a
-                    href="/pages/app/profile/index.html"
-                    className="mt-1 block rounded-lg px-3 py-2 text-sm hover:bg-black/5"
-                  >
-                    Profile
-                  </a>
-
-                  <a
-                    href="/pages/app/settings/account/index.html"
-                    className="block rounded-lg px-3 py-2 text-sm hover:bg-black/5"
-                  >
-                    Settings
-                  </a>
-
-                  <button
-                    type="button"
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-black/50 hover:bg-black/5"
-                  >
-                    Log out
-                  </button>
-                </div>
-              )}
-            </div>
+              <ChevronDown className="size-4" />
+            </AccountDropdown>
           </div>
         </header>
 

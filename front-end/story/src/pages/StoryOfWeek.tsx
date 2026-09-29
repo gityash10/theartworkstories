@@ -7,11 +7,11 @@ import {
   Heart,
   Menu,
   Search,
-  Settings,
   Share2,
-  User,
-  X,
 } from "lucide-react";
+
+import AccountDropdown from "../components/AccountDropdown";
+import AppSidebar from "../components/AppSidebar";
 
 const chapters = [
   {
@@ -38,7 +38,6 @@ const chapters = [
 
 function StoryOfTheWeek() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -52,86 +51,12 @@ function StoryOfTheWeek() {
         />
       )}
 
-      {/* SIDEBAR */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r border-black/10 bg-[#f7f5f0] px-5 py-6 transition-transform duration-300 lg:translate-x-0 ${
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <a
-            href="/pages/app/discover/index.html"
-            className="font-display text-xl tracking-tight"
-          >
-            The ArtWork Stories
-          </a>
-
-          <button
-            type="button"
-            className="rounded-lg p-2 hover:bg-black/5 lg:hidden"
-            onClick={() => setMobileSidebarOpen(false)}
-            aria-label="Close menu"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-black/40">
-          Every art has a story.
-        </p>
-
-        <nav className="mt-10 space-y-1">
-          <a
-            href="/pages/app/discover/index.html"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-black/65 transition hover:bg-black/5 hover:text-black"
-          >
-            <span className="text-base">◌</span>
-            Discover
-          </a>
-
-          <a
-            href="/pages/app/collections/index.html"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-black/65 transition hover:bg-black/5 hover:text-black"
-          >
-            <span className="text-base">◈</span>
-            Collections
-          </a>
-
-          <div className="my-5 border-t border-black/10" />
-
-          <a
-            href="/pages/app/create/index.html"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-black/65 transition hover:bg-black/5 hover:text-black"
-          >
-            <span className="text-base">+</span>
-            Share an Artwork
-          </a>
-
-          <a
-            href="/pages/app/profile/index.html"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-black/65 transition hover:bg-black/5 hover:text-black"
-          >
-            <User className="size-4" />
-            Profile
-          </a>
-
-          <a
-            href="/pages/app/settings/account/index.html"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-black/65 transition hover:bg-black/5 hover:text-black"
-          >
-            <Settings className="size-4" />
-            Settings
-          </a>
-        </nav>
-
-        <div className="mt-auto rounded-2xl bg-[#e8ddca] p-4">
-          <p className="font-display text-lg leading-tight">Take your time.</p>
-
-          <p className="mt-2 text-xs leading-5 text-black/55">
-            Great stories are rarely discovered all at once.
-          </p>
-        </div>
-      </aside>
+      {/* GLOBAL SIDEBAR */}
+      <AppSidebar
+        active="discover"
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
 
       {/* MAIN */}
       <main className="min-h-screen lg:pl-[250px]">
@@ -165,58 +90,15 @@ function StoryOfTheWeek() {
               <Bell className="size-5" />
             </a>
 
-            <div className="relative hidden sm:block">
-              <button
-                type="button"
-                onClick={() => setAccountOpen((value) => !value)}
-                className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-black/5"
-              >
-                <span className="flex size-9 items-center justify-center rounded-full bg-[#292723] text-sm text-white">
-                  Y
-                </span>
+            <AccountDropdown className="hidden sm:flex">
+              <span className="flex size-9 items-center justify-center rounded-full bg-[#292723] text-sm text-white">
+                Y
+              </span>
 
-                <span className="hidden text-sm xl:block">Hi, Yash</span>
+              <span className="hidden text-sm xl:block">Hi, Yash</span>
 
-                <ChevronDown
-                  className={`size-4 transition-transform ${
-                    accountOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {accountOpen && (
-                <div className="absolute right-0 top-12 w-56 rounded-2xl border border-black/10 bg-white p-2 shadow-xl">
-                  <div className="border-b border-black/10 px-3 py-3">
-                    <p className="text-sm font-medium">Yash Jain</p>
-                    <p className="mt-0.5 text-xs text-black/45">@yashjain</p>
-                  </div>
-
-                  <a
-                    href="/pages/app/profile/index.html"
-                    className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-black/5"
-                  >
-                    <User className="size-4" />
-                    Profile
-                  </a>
-
-                  <a
-                    href="/pages/app/settings/account/index.html"
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-black/5"
-                  >
-                    <Settings className="size-4" />
-                    Settings
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={() => setAccountOpen(false)}
-                    className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-black/55 hover:bg-black/5 hover:text-black"
-                  >
-                    Log out
-                  </button>
-                </div>
-              )}
-            </div>
+              <ChevronDown className="size-4" />
+            </AccountDropdown>
           </div>
         </header>
 
