@@ -36,8 +36,10 @@ import {
 
 import AppSidebar from "../components/AppSidebar";
 import LikeButton from "../components/LikeButton";
+import FollowButton from "../components/FollowButton";
 
 import { getLikeCount } from "../data/firestore/likes";
+import { getFollowerCount } from "../data/firestore/follows";
 
 import { auth } from "../firebase";
 
@@ -124,7 +126,7 @@ export default function CollectionPage() {
 
   const [likeCount, setLikeCount] = useState<number | null>(null);
 
-  const [followed, setFollowed] = useState(false);
+  const [followerCount, setFollowerCount] = useState<number | null>(null);
 
   const [savedLocal, setSavedLocal] = useState(false);
 
@@ -281,6 +283,42 @@ export default function CollectionPage() {
     };
   }, [loadState, isOwner]);
 
+  /*
+   * Real like + follower counts for this collection, derived
+   * from the likes/follows collections (refreshed on load).
+   */
+  useEffect(() => {
+    if (!collectionId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    getLikeCount("collection", collectionId)
+      .then((count) => {
+        if (!cancelled) {
+          setLikeCount(count);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load collection like count:", error);
+      });
+
+    getFollowerCount("collection", collectionId)
+      .then((count) => {
+        if (!cancelled) {
+          setFollowerCount(count);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load collection follower count:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [collectionId]);
+
   if (loadState === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f5f1e8]">
@@ -363,12 +401,12 @@ export default function CollectionPage() {
   );
 
   /*
-   * Likes are real: the button writes to Firestore through the
-   * shared LikeButton and the stat below is derived from like
-   * documents. Follow / Save still depend on the future Follows
-   * system and stay as honest local feedback until then.
+   * Likes and follows are real: the buttons write to Firestore
+   * through the shared LikeButton / FollowButton, and the stats
+   * below are derived from like/follow documents. Save still
+   * depends on a future feature and stays as honest local
+   * feedback until then.
    */
-  const handleFollow = () => setFollowed((value) => !value);
 
   const handleSave = () => setSavedLocal((value) => !value);
 
@@ -480,32 +518,6 @@ export default function CollectionPage() {
       );
     }
   };
-
-  /*
-   * Real like count for this collection, derived from the
-   * likes collection (refreshed on page load).
-   */
-  useEffect(() => {
-    if (!collectionId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    getLikeCount("collection", collectionId)
-      .then((count) => {
-        if (!cancelled) {
-          setLikeCount(count);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load collection like count:", error);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [collectionId]);
 
   const openEdit = () => {
     setEditTitle(collection.title);
@@ -721,7 +733,7 @@ export default function CollectionPage() {
 
               <Stat
                 icon={<Users size={16} />}
-                value="—"
+                value={followerCount === null ? "…" : followerCount}
                 label="Followers"
               />
 
@@ -738,10 +750,9 @@ export default function CollectionPage() {
                 targetId={collection.id}
               />
 
-              <ActionButton
-                icon={<Users size={16} />}
-                label={followed ? "Following" : "Follow"}
-                onClick={handleFollow}
+              <FollowButton
+                targetType="collection"
+                targetId={collection.id}
               />
 
               <ActionButton
@@ -966,7 +977,7 @@ export default function CollectionPage() {
 
                   <MiniStat
                     label="Followers"
-                    value="—"
+                    value={followerCount === null ? "…" : followerCount}
                   />
 
                   <MiniStat label="Saves" value="—" />
