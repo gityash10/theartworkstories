@@ -6,7 +6,7 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import SettingsLayout from "./SettingsLayout";
 import {
@@ -18,13 +18,25 @@ import {
   useSavedIndicator,
 } from "./ui";
 
+import { auth } from "../firebase";
+
+import {
+  ensureUserProfile,
+  getUserProfile,
+  updateUserProfile,
+  type UserProfile,
+} from "../data/firestore/users";
+
 /* ===============================================================
    ACCOUNT SETTINGS
 
-   Fully local: profile information mirrors the same
-   localStorage record the Profile / Edit Profile pages use
-   ("the-artwork-stories-profile"), so changes made here show up
-   on the Profile page and vice versa.
+   Profile information is stored in Firestore under users/{uid}
+   (the document ID is the Firebase Auth UID), the same single
+   source of truth used by the Profile / Edit Profile pages.
+
+   The email field mirrors the Firebase Auth email. Changing the
+   Auth email is a separate authentication operation and is not
+   implemented on this page yet.
    =============================================================== */
 
 type AccountInfo = {
@@ -37,59 +49,119 @@ type AccountInfo = {
   phone: string;
 };
 
-const PROFILE_KEY = "the-artwork-stories-profile";
-
-const DEFAULT_ACCOUNT: AccountInfo = {
-  name: "Yash Jain",
-  username: "yashjain",
-  bio: "Exploring the stories, ideas and emotions hidden inside great works of art.",
-  location: "Indore, Madhya Pradesh",
-  website: "https://jainyashportfolio.vercel.app",
-  email: "yash@example.com",
-  phone: "+91 98765 43210",
-};
-
-function readAccount(): AccountInfo {
-  try {
-    const raw = localStorage.getItem(PROFILE_KEY);
-
-    if (!raw) {
-      return DEFAULT_ACCOUNT;
-    }
-
-    const parsed = JSON.parse(raw) as Partial<AccountInfo>;
-
-    return {
-      name: parsed.name ?? DEFAULT_ACCOUNT.name,
-      username: parsed.username
-        ? parsed.username.replace(/^@+/, "")
-        : DEFAULT_ACCOUNT.username,
-      bio: parsed.bio ?? DEFAULT_ACCOUNT.bio,
-      location: parsed.location ?? DEFAULT_ACCOUNT.location,
-      website: parsed.website ?? DEFAULT_ACCOUNT.website,
-      email: parsed.email ?? DEFAULT_ACCOUNT.email,
-      phone: parsed.phone ?? DEFAULT_ACCOUNT.phone,
-    };
-  } catch {
-    return DEFAULT_ACCOUNT;
+/*
+ * Firestore stores joinedAt as a server Timestamp; the UI shows
+ * the joined month and year.
+ */
+function joinedLabel(joinedAt: UserProfile["joinedAt"]): string {
+  if (joinedAt && typeof joinedAt === "object" && "toDate" in joinedAt) {
+    return (joinedAt as { toDate: () => Date })
+      .toDate()
+      .toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
   }
+
+  return "";
 }
 
 export default function Account() {
-  const [saved, setSaved] = useState<AccountInfo>(readAccount);
-  const [draft, setDraft] = useState<AccountInfo>(saved);
+  const [saved, setSaved] = useState<AccountInfo | null>(null);
+  const [draft, setDraft] = useState<AccountInfo | null>(null);
   const [avatar, setAvatar] = useState<string>("");
   const [showPhoneForm, setShowPhoneForm] = useState(false);
   const [savedFlash, flashSaved, savedLabel] = useSavedIndicator();
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const [loadState, setLoadState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [memberSince, setMemberSince] = useState("");
 
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const removedAvatarRef = useRef(false);
+
+  /*
+   * Load the profile from Firestore (users/{uid}) using the
+   * authenticated user's UID. Backfill a missing document via
+   * ensureUserProfile (document ID = Auth UID, no duplicates).
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAccount() {
+      try {
+        await auth.authStateReady();
+
+        const user = auth.currentUser;
+
+        if (!user) {
+          /* No signed-in user: the Auth Guard handles the redirect. */
+          return;
+        }
+
+        let firestoreProfile = await getUserProfile(user.uid);
+
+        if (!firestoreProfile) {
+          await ensureUserProfile(user);
+          firestoreProfile = await getUserProfile(user.uid);
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!firestoreProfile) {
+          setLoadState("error");
+          return;
+        }
+
+        const account: AccountInfo = {
+          name: firestoreProfile.displayName,
+          /*
+           * The page renders the "@" itself, so strip any
+           * leading "@" characters from the stored handle
+           * (same normalization the page always did).
+           */
+          username: firestoreProfile.username.replace(/^@+/, ""),
+          bio: firestoreProfile.bio,
+          location: firestoreProfile.location,
+          website: firestoreProfile.website,
+          email: firestoreProfile.email,
+          phone: firestoreProfile.phone ?? "",
+        };
+
+        setSaved(account);
+        setDraft(account);
+        setMemberSince(joinedLabel(firestoreProfile.joinedAt));
+
+        if (firestoreProfile.photoURL) {
+          setAvatar(firestoreProfile.photoURL);
+        }
+
+        setLoadState("ready");
+      } catch (error) {
+        console.error("Failed to load account settings from Firestore:", error);
+
+        if (!cancelled) {
+          setLoadState("error");
+        }
+      }
+    }
+
+    loadAccount();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const update = <K extends keyof AccountInfo>(
     key: K,
     value: AccountInfo[K],
   ) => {
-    setDraft((current) => ({ ...current, [key]: value }));
+    setDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
   const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -125,37 +197,54 @@ export default function Account() {
     flashSaved("Photo removed");
   };
 
-  const handleSave = () => {
-    /*
-     * Merge into the existing profile record so fields owned by
-     * other pages (joinedDate, isPublic, ...) are preserved.
-     */
-    try {
-      const raw = localStorage.getItem(PROFILE_KEY);
-      const existing = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-
-      localStorage.setItem(
-        PROFILE_KEY,
-        JSON.stringify({
-          ...existing,
-          name: draft.name,
-          username: draft.username,
-          bio: draft.bio,
-          location: draft.location,
-          website: draft.website,
-          email: draft.email,
-          phone: draft.phone,
-          ...(removedAvatarRef.current ? { avatar: "" } : {}),
-          ...(avatar ? { avatar } : {}),
-        }),
-      );
-    } catch {
-      /* Storage unavailable — keep UI state only. */
+  const handleSave = async () => {
+    if (isSaving || !draft) {
+      return;
     }
 
-    setSaved(draft);
-    removedAvatarRef.current = false;
-    flashSaved("Changes saved");
+    const user = auth.currentUser;
+
+    if (!user) {
+      setSaveError(true);
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(false);
+
+    try {
+      /*
+       * Update the same users/{uid} document the Profile and
+       * Edit Profile pages use. updatedAt is refreshed by the
+       * data layer with a server timestamp.
+       *
+       * The email field is intentionally NOT written: it is
+       * owned by Firebase Authentication and changing it here
+       * would make Auth and Firestore inconsistent.
+       */
+      await updateUserProfile(user.uid, {
+        displayName: draft.name,
+        username: draft.username,
+        bio: draft.bio,
+        location: draft.location,
+        website: draft.website,
+        phone: draft.phone,
+      });
+
+      setSaved(draft);
+      removedAvatarRef.current = false;
+      flashSaved("Changes saved");
+    } catch (error) {
+      /*
+       * Keep the user on the page with their entered values;
+       * details go to the developer console.
+       */
+      console.error("Failed to save account settings to Firestore:", error);
+
+      setSaveError(true);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -168,7 +257,8 @@ export default function Account() {
     setAvatar("");
   };
 
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(saved);
+  const isDirty =
+    draft !== null && saved !== null && JSON.stringify(draft) !== JSON.stringify(saved);
 
   return (
     <SettingsLayout
@@ -177,6 +267,21 @@ export default function Account() {
       description="Manage your account information and profile details."
     >
       <div className="space-y-6">
+        {loadState === "loading" && (
+          <div className="tas-card rounded-2xl border border-black/10 bg-white/45 p-10 text-center text-sm text-black/50">
+            Loading account…
+          </div>
+        )}
+
+        {loadState === "error" && (
+          <div className="tas-card rounded-2xl border border-black/10 bg-white/45 p-10 text-center text-sm text-black/50">
+            We couldn't load your account settings. Please refresh the page to
+            try again.
+          </div>
+        )}
+
+        {loadState === "ready" && draft && (
+        <>
         {/* Profile photo */}
         <section className="tas-card rounded-2xl border border-black/10 bg-white/45 p-6 sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
@@ -342,8 +447,8 @@ export default function Account() {
               </div>
 
               <FieldHelper>
-                Email changes are verified through your inbox once account
-                integration is connected.
+                Your sign-in email is managed by Firebase Authentication and
+                can't be changed here yet.
               </FieldHelper>
             </div>
 
@@ -405,7 +510,9 @@ export default function Account() {
           <div className="mt-3 flex items-center justify-between gap-5">
             <div>
               <h2 className="font-display text-2xl">Member since</h2>
-              <p className="mt-1 text-sm text-black/50">September 2026</p>
+              <p className="mt-1 text-sm text-black/50">
+                {memberSince || "—"}
+              </p>
             </div>
           </div>
         </section>
@@ -415,7 +522,13 @@ export default function Account() {
           <div className="flex items-center gap-3">
             <SavedBadge show={savedFlash} label={savedLabel} />
 
-            {isDirty && !savedFlash && (
+            {saveError && !savedFlash && (
+              <span className="text-xs text-red-600">
+                Save failed — please try again.
+              </span>
+            )}
+
+            {isDirty && !savedFlash && !saveError && (
               <span className="text-xs text-black/45">Unsaved changes</span>
             )}
           </div>
@@ -432,13 +545,16 @@ export default function Account() {
             <button
               type="button"
               onClick={handleSave}
-              className="h-11 flex-1 rounded-xl px-5 text-sm text-white transition hover:opacity-90 sm:flex-none"
+              disabled={isSaving}
+              className="h-11 flex-1 rounded-xl px-5 text-sm text-white transition hover:opacity-90 disabled:opacity-60 sm:flex-none"
               style={{ backgroundColor: "var(--tas-accent, #24231f)" }}
             >
-              Save Changes
+              {isSaving ? "Saving…" : "Save Changes"}
             </button>
           </div>
         </div>
+        </>
+        )}
       </div>
     </SettingsLayout>
   );

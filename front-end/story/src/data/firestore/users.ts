@@ -54,6 +54,8 @@ export interface UserProfile {
   bio: string;
   location: string;
   website: string;
+  /** Private contact number; never rendered on the public profile. */
+  phone: string;
   coverImage: string;
   /** Server timestamp set when the document is first created. */
   joinedAt: FieldValue | Timestamp | null;
@@ -84,6 +86,7 @@ export async function createUserProfile(
     bio: "",
     location: "",
     website: "",
+    phone: "",
     coverImage: "",
     ...input,
     joinedAt: serverTimestamp(),
@@ -146,6 +149,7 @@ export async function ensureUserProfile(
     bio: "",
     location: "",
     website: "",
+    phone: "",
     coverImage: "",
     ...input,
     joinedAt: serverTimestamp(),
