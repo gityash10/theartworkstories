@@ -10,6 +10,8 @@ import {
 
 import { auth } from "../../story/src/firebase.ts";
 
+import { ensureUserProfile } from "../../story/src/data/firestore/users";
+
 document.addEventListener("DOMContentLoaded", () => {
     const loginForm = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
@@ -216,6 +218,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const user = userCredential.user;
 
             /*
+             * Backfill the Firestore users/{uid}
+             * document if it is missing (e.g. users
+             * created before the Firestore phase).
+             */
+            await ensureUserProfile(user);
+
+            /*
              * Email/password users must verify their email
              * before entering the application.
              */
@@ -274,9 +283,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 const provider =
                     new GoogleAuthProvider();
 
-                await signInWithPopup(
-                    auth,
-                    provider
+                const userCredential =
+                    await signInWithPopup(
+                        auth,
+                        provider
+                    );
+
+                /*
+                 * Create the Firestore users/{uid}
+                 * document for first-time Google users.
+                 */
+                await ensureUserProfile(
+                    userCredential.user
                 );
 
                 window.location.href =

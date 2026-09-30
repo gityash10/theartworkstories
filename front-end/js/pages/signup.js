@@ -10,6 +10,8 @@ import {
 
 import { auth } from "../../story/src/firebase.ts";
 
+import { ensureUserProfile } from "../../story/src/data/firestore/users";
+
 document.addEventListener("DOMContentLoaded", () => {
     const signupForm =
         document.getElementById("signupForm");
@@ -331,12 +333,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 /*
                  * Save the user's name in the
                  * Firebase Auth profile.
-                 *
-                 * Firestore profile data will be
-                 * added in the next Firebase phase.
                  */
                 await updateProfile(user, {
                     displayName: name,
+                });
+
+                /*
+                 * Create the matching Firestore
+                 * users/{uid} document (the Auth UID
+                 * is the document ID).
+                 */
+                await ensureUserProfile(user, {
+                    displayName: name,
+                    email,
                 });
 
                 /*
@@ -413,9 +422,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     const provider =
                         new GoogleAuthProvider();
 
-                    await signInWithPopup(
-                        auth,
-                        provider
+                    const userCredential =
+                        await signInWithPopup(
+                            auth,
+                            provider
+                        );
+
+                    /*
+                     * Create the Firestore users/{uid}
+                     * document for first-time Google users.
+                     */
+                    await ensureUserProfile(
+                        userCredential.user
                     );
 
                     window.location.href =
