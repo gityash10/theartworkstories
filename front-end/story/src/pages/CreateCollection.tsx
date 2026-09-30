@@ -9,16 +9,47 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 
 import AppSidebar from "../components/AppSidebar";
 
-import { addArtworkToCollection, createCollection } from "../data/collections";
-import { availableArtworks } from "../data/artworks";
+import {
+  addArtworkToCollection,
+  createCollection,
+} from "../data/firestore/collections";
+
+import {
+  listArtworks,
+  type Artwork,
+} from "../data/firestore/artworks";
+
+import { auth } from "../firebase";
 
 /* =========================================================
    ARTWORK DATA
+
+   The picker shows real Firestore artworks — the signed-in
+   user's own artworks plus artworks shared publicly. Demo
+   catalog data never enters the create flow.
    ========================================================= */
+
+type PickerCard = {
+  id: string;
+  title: string;
+  artist: string;
+  image: string;
+};
+
+const PICKER_PLACEHOLDER = "/assets/images/story/story-mosaic.jpg";
+
+function toPickerCard(artwork: Artwork): PickerCard {
+  return {
+    id: artwork.id,
+    title: artwork.title || "Untitled artwork",
+    artist: artwork.artist || "Unknown artist",
+    image: artwork.imageUrl || PICKER_PLACEHOLDER,
+  };
+}
 
 /* =========================================================
    TAGS
@@ -56,10 +87,7 @@ function CreateCollection() {
      ARTWORK STATE
      ------------------------------------------------------- */
 
-  const [selectedArtworks, setSelectedArtworks] = useState<string[]>([
-    "himalayan-dawn",
-    "flowers",
-  ]);
+  const [selectedArtworks, setSelectedArtworks] = useState<string[]>([]);
 
   /* -------------------------------------------------------
      TAG STATE
@@ -92,6 +120,73 @@ function CreateCollection() {
   const [publishing, setPublishing] = useState(false);
 
   /* =======================================================
+     REAL ARTWORKS FOR THE PICKER (FIRESTORE)
+     ======================================================= */
+
+  const [pickerArtworks, setPickerArtworks] = useState<PickerCard[]>([]);
+
+  const [pickerState, setPickerState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPickerArtworks() {
+      try {
+        await auth.authStateReady();
+
+        const user = auth.currentUser;
+
+        if (!user) {
+          /* No signed-in user: the Auth Guard handles the redirect. */
+          return;
+        }
+
+        /*
+         * Own artworks plus everything shared publicly — these
+         * are the artworks a collection can legitimately
+         * reference by ID.
+         */
+        const [own, publicArtworks] = await Promise.all([
+          listArtworks({ ownerId: user.uid }),
+          listArtworks({ visibility: "public" }),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        const unique = new Map<string, Artwork>();
+
+        for (const artwork of [...own, ...publicArtworks]) {
+          unique.set(artwork.id, artwork);
+        }
+
+        setPickerArtworks(
+          [...unique.values()].map(toPickerCard),
+        );
+        setPickerState("ready");
+      } catch (error) {
+        console.error(
+          "Failed to load artworks for the collection picker:",
+          error,
+        );
+
+        if (!cancelled) {
+          setPickerState("error");
+        }
+      }
+    }
+
+    loadPickerArtworks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* =======================================================
      FILTER ARTWORKS
      ======================================================= */
 
@@ -99,21 +194,21 @@ function CreateCollection() {
     const value = search.trim().toLowerCase();
 
     if (!value) {
-      return availableArtworks;
+      return pickerArtworks;
     }
 
-    return availableArtworks.filter(
+    return pickerArtworks.filter(
       (artwork) =>
         artwork.title.toLowerCase().includes(value) ||
         artwork.artist.toLowerCase().includes(value),
     );
-  }, [search]);
+  }, [pickerArtworks, search]);
 
   /* =======================================================
-     SELECTED ARTWORK OBJECTS
+     SELECTED ARTWORK CARDS
      ======================================================= */
 
-  const selectedArtworkObjects = availableArtworks.filter((artwork) =>
+  const selectedArtworkObjects = pickerArtworks.filter((artwork) =>
     selectedArtworks.includes(artwork.id),
   );
 
@@ -185,7 +280,7 @@ function CreateCollection() {
      PUBLISH COLLECTION
      ======================================================= */
 
-  const publishCollection = () => {
+  const publishCollection = async () => {
     if (publishing) {
       return;
     }
@@ -218,35 +313,51 @@ function CreateCollection() {
 
     try {
       /* ---------------------------------------------------
-         CREATE COLLECTION
+         CREATE COLLECTION (FIRESTORE)
+         Ownership comes from the authenticated user.
          --------------------------------------------------- */
 
-      const collection = createCollection({
-        title: title.trim(),
+      await auth.authStateReady();
 
-        description: description.trim(),
+      const user = auth.currentUser;
 
-        coverImage,
+      if (!user) {
+        window.alert("Your session has expired. Please sign in again.");
 
-        visibility,
+        window.location.href = "/pages/login/index.html";
 
-        tags: selectedTags,
-      });
+        return;
+      }
+
+      const collectionId = await createCollection(
+        {
+          title: title.trim(),
+
+          description: description.trim(),
+
+          coverImage,
+
+          visibility,
+
+          tags: selectedTags,
+        },
+        user.uid,
+      );
 
       /* ---------------------------------------------------
-         ADD SELECTED ARTWORKS
+         ADD SELECTED ARTWORKS (ID REFERENCES ONLY)
          --------------------------------------------------- */
 
-      selectedArtworks.forEach((artworkId) => {
-        addArtworkToCollection(collection.id, artworkId);
-      });
+      for (const artworkId of selectedArtworks) {
+        await addArtworkToCollection(collectionId, artworkId);
+      }
 
       /* ---------------------------------------------------
          OPEN COLLECTION PAGE
          --------------------------------------------------- */
 
       window.location.href = `../collection/index.html?id=${encodeURIComponent(
-        collection.id,
+        collectionId,
       )}`;
     } catch (error) {
       console.error("Failed to create collection:", error);

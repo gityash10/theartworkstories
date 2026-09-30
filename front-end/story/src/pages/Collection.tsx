@@ -14,35 +14,31 @@ import {
   Settings,
   Share2,
   Trash2,
-  UserPlus,
   Users,
   X,
 } from "lucide-react";
 
 import {
   addArtworkToCollection,
-  addCollectionMember,
   deleteCollection,
-  followCollection,
   getCollection,
-  incrementCollectionViews,
-  likeCollection,
   removeArtworkFromCollection,
-  removeCollectionMember,
   reorderCollectionArtwork,
-  saveCollection,
   updateCollection,
-} from "../data/collections";
-import { availableArtworks, type Artwork } from "../data/artworks";
+  type FirestoreCollection,
+} from "../data/firestore/collections";
+
+import {
+  getArtwork,
+  listArtworks,
+  type Artwork,
+} from "../data/firestore/artworks";
+
 import AppSidebar from "../components/AppSidebar";
 
-import type { Collection } from "../types/collection";
+import { auth } from "../firebase";
 
-const CURRENT_USER_ID = "demo-user-yash";
-
-function getArtwork(id: string): Artwork | undefined {
-  return availableArtworks.find((artwork) => artwork.id === id);
-}
+const PLACEHOLDER_IMAGE = "/assets/images/story/story-mosaic.jpg";
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-IN", {
@@ -51,7 +47,19 @@ function formatNumber(value: number) {
   }).format(value);
 }
 
-function formatDate(date: string) {
+function timestampToIso(value: unknown): string | null {
+  if (value && typeof value === "object" && "toDate" in value) {
+    return (value as { toDate: () => Date }).toDate().toISOString();
+  }
+
+  return null;
+}
+
+function formatDate(date: string | null) {
+  if (!date) {
+    return "";
+  }
+
   return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "long",
@@ -59,14 +67,45 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
-export default function CollectionPage() {
-  const [collection, setCollection] = useState<Collection | null>(null);
+/*
+ * Resolved artwork cards inside a collection. Membership stores
+ * Firestore artwork IDs only; entries whose artwork document no
+ * longer exists (deleted later) degrade gracefully instead of
+ * crashing the page or silently swapping in demo data.
+ */
+type ResolvedArtwork = {
+  id: string;
+  title: string;
+  artist: string;
+  image: string;
+  missing: boolean;
+};
 
-  const [loading, setLoading] = useState(true);
+type PickerCard = {
+  id: string;
+  title: string;
+  artist: string;
+  image: string;
+};
+
+type LoadState = "loading" | "ready" | "notfound" | "error";
+
+export default function CollectionPage() {
+  const [collection, setCollection] = useState<FirestoreCollection | null>(
+    null,
+  );
+
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+
+  const [isOwner, setIsOwner] = useState(false);
+
+  const [artworkItems, setArtworkItems] = useState<ResolvedArtwork[]>([]);
+
+  const [availableArtworkPicker, setAvailableArtworkPicker] = useState<
+    PickerCard[]
+  >([]);
 
   const [showAddArtwork, setShowAddArtwork] = useState(false);
-
-  const [showMembers, setShowMembers] = useState(false);
 
   const [showEdit, setShowEdit] = useState(false);
 
@@ -78,11 +117,13 @@ export default function CollectionPage() {
 
   const [editDescription, setEditDescription] = useState("");
 
-  const [memberUserId, setMemberUserId] = useState("");
-
-  const [memberRole, setMemberRole] = useState<"editor" | "viewer">("viewer");
-
   const [copied, setCopied] = useState(false);
+
+  const [liked, setLiked] = useState(false);
+
+  const [followed, setFollowed] = useState(false);
+
+  const [savedLocal, setSavedLocal] = useState(false);
 
   const collectionId = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -90,24 +131,154 @@ export default function CollectionPage() {
     return params.get("id");
   }, []);
 
+  /*
+   * Resolve stored artwork IDs into cards. Deleted artworks are
+   * kept as explicit "unavailable" entries — no demo fallback.
+   */
+  async function resolveArtworks(current: FirestoreCollection) {
+    const entries = [...current.artworks].sort(
+      (a, b) => a.position - b.position,
+    );
+
+    const resolved = await Promise.all(
+      entries.map(async (item) => {
+        const artwork = await getArtwork(item.artworkId);
+
+        if (!artwork) {
+          return {
+            id: item.artworkId,
+            title: "Artwork unavailable",
+            artist: "This artwork may have been deleted.",
+            image: PLACEHOLDER_IMAGE,
+            missing: true,
+          } satisfies ResolvedArtwork;
+        }
+
+        return {
+          id: artwork.id,
+          title: artwork.title || "Untitled artwork",
+          artist: artwork.artist || "Unknown artist",
+          image: artwork.imageUrl || PLACEHOLDER_IMAGE,
+          missing: false,
+        } satisfies ResolvedArtwork;
+      }),
+    );
+
+    setArtworkItems(resolved);
+  }
+
   useEffect(() => {
-    if (!collectionId) {
-      setLoading(false);
+    if (collectionId === null) {
       return;
     }
 
-    const found = getCollection(collectionId);
-
-    if (found) {
-      const updated = incrementCollectionViews(collectionId);
-
-      setCollection(updated ?? found);
+    if (!collectionId) {
+      setLoadState("notfound");
+      return;
     }
 
-    setLoading(false);
+    let cancelled = false;
+
+    async function loadCollection() {
+      try {
+        const doc = await getCollection(collectionId as string);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!doc) {
+          setLoadState("notfound");
+          return;
+        }
+
+        await auth.authStateReady();
+
+        const uid = auth.currentUser?.uid ?? null;
+
+        if (!cancelled) {
+          setIsOwner(uid !== null && doc.ownerId === uid);
+          setCollection(doc);
+          setLoadState("ready");
+        }
+
+        await resolveArtworks(doc);
+      } catch (error) {
+        console.error("Failed to load collection from Firestore:", error);
+
+        if (!cancelled) {
+          setLoadState("error");
+        }
+      }
+    }
+
+    loadCollection();
+
+    return () => {
+      cancelled = true;
+    };
   }, [collectionId]);
 
-  if (loading) {
+  /*
+   * The add-artwork picker offers the owner's own artworks plus
+   * public artworks — the artworks a collection can reference.
+   */
+  useEffect(() => {
+    if (loadState !== "ready" || !isOwner) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPicker() {
+      try {
+        await auth.authStateReady();
+
+        const user = auth.currentUser;
+
+        if (!user) {
+          return;
+        }
+
+        const [own, publicArtworks] = await Promise.all([
+          listArtworks({ ownerId: user.uid }),
+          listArtworks({ visibility: "public" }),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        const unique = new Map<string, Artwork>();
+
+        for (const artwork of [...own, ...publicArtworks]) {
+          unique.set(artwork.id, artwork);
+        }
+
+        setAvailableArtworkPicker(
+          [...unique.values()].map((artwork) => ({
+            id: artwork.id,
+            title: artwork.title || "Untitled artwork",
+            artist: artwork.artist || "Unknown artist",
+            image: artwork.imageUrl || PLACEHOLDER_IMAGE,
+          })),
+        );
+      } catch (error) {
+        console.error(
+          "Failed to load artworks for the collection picker:",
+          error,
+        );
+      }
+    }
+
+    loadPicker();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadState, isOwner]);
+
+  if (loadState === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f5f1e8]">
         <div className="text-sm uppercase tracking-[0.2em] text-black/50">
@@ -117,7 +288,7 @@ export default function CollectionPage() {
     );
   }
 
-  if (!collectionId || !collection) {
+  if (loadState === "notfound" || (loadState === "ready" && !collection)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f5f1e8] px-6">
         <div className="max-w-md text-center">
@@ -141,54 +312,64 @@ export default function CollectionPage() {
     );
   }
 
-  const isOwner = collection.ownerId === CURRENT_USER_ID;
+  if (loadState === "error" || !collection) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f5f1e8] px-6">
+        <div className="max-w-md text-center">
+          <p className="text-xs uppercase tracking-[0.25em] text-black/40">
+            Something went wrong
+          </p>
 
-  const artworkItems = collection.artworks
-    .slice()
-    .sort((a, b) => a.position - b.position)
-    .map((item) => getArtwork(item.artworkId))
-    .filter(Boolean) as Artwork[];
+          <h1 className="mt-4 font-serif text-4xl">
+            We couldn't load this collection.
+          </h1>
+
+          <p className="mt-3 text-sm text-black/55">
+            Please refresh the page to try again.
+          </p>
+
+          <a
+            href="../collections/index.html"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-black px-5 py-3 text-sm text-white"
+          >
+            <ArrowLeft size={16} />
+            Back to collections
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   const selectedArtworkIds = new Set(
     collection.artworks.map((item) => item.artworkId),
   );
 
-  const filteredAvailableArtworks = availableArtworks.filter((artwork) => {
-    const search = artworkSearch.toLowerCase().trim();
+  const filteredAvailableArtworks = availableArtworkPicker.filter(
+    (artwork) => {
+      const search = artworkSearch.toLowerCase().trim();
 
-    if (!search) {
-      return !selectedArtworkIds.has(artwork.id);
-    }
+      if (!search) {
+        return !selectedArtworkIds.has(artwork.id);
+      }
 
-    return (
-      !selectedArtworkIds.has(artwork.id) &&
-      `${artwork.title} ${artwork.artist}`.toLowerCase().includes(search)
-    );
-  });
+      return (
+        !selectedArtworkIds.has(artwork.id) &&
+        `${artwork.title} ${artwork.artist}`.toLowerCase().includes(search)
+      );
+    },
+  );
 
-  const handleLike = () => {
-    const updated = likeCollection(collection.id);
+  /*
+   * Like / Follow / Save depend on the future Likes and Follows
+   * systems. The buttons keep working as honest local feedback
+   * until those migrations land — nothing is written to
+   * Firestore and no fake counts are shown.
+   */
+  const handleLike = () => setLiked((value) => !value);
 
-    if (updated) {
-      setCollection(updated);
-    }
-  };
+  const handleFollow = () => setFollowed((value) => !value);
 
-  const handleFollow = () => {
-    const updated = followCollection(collection.id);
-
-    if (updated) {
-      setCollection(updated);
-    }
-  };
-
-  const handleSave = () => {
-    const updated = saveCollection(collection.id);
-
-    if (updated) {
-      setCollection(updated);
-    }
-  };
+  const handleSave = () => setSavedLocal((value) => !value);
 
   const handleShare = async () => {
     try {
@@ -204,15 +385,42 @@ export default function CollectionPage() {
     }
   };
 
-  const handleAddArtwork = (artworkId: string) => {
-    const updated = addArtworkToCollection(collection.id, artworkId);
+  const refreshCollection = async () => {
+    const updated = collectionId ? await getCollection(collectionId) : null;
 
     if (updated) {
       setCollection(updated);
+
+      await resolveArtworks(updated);
     }
   };
 
-  const handleRemoveArtwork = (artworkId: string) => {
+  const handleAddArtwork = async (artworkId: string) => {
+    try {
+      const updated = await addArtworkToCollection(
+        collection.id,
+        artworkId,
+      );
+
+      if (updated) {
+        setCollection(updated);
+
+        await resolveArtworks(updated);
+      }
+
+      setShowAddArtwork(false);
+
+      setArtworkSearch("");
+    } catch (error) {
+      console.error("Failed to add artwork to collection:", error);
+
+      window.alert(
+        "We couldn't add that artwork to the collection. Please try again.",
+      );
+    }
+  };
+
+  const handleRemoveArtwork = async (artworkId: string) => {
     const confirmed = window.confirm(
       "Remove this artwork from the collection?",
     );
@@ -221,24 +429,54 @@ export default function CollectionPage() {
       return;
     }
 
-    const updated = removeArtworkFromCollection(collection.id, artworkId);
+    try {
+      const updated = await removeArtworkFromCollection(
+        collection.id,
+        artworkId,
+      );
 
-    if (updated) {
-      setCollection(updated);
+      if (updated) {
+        setCollection(updated);
+
+        await resolveArtworks(updated);
+      }
+    } catch (error) {
+      console.error("Failed to remove artwork from collection:", error);
+
+      window.alert(
+        "We couldn't remove that artwork from the collection. Please try again.",
+      );
     }
   };
 
-  const handleMoveArtwork = (index: number, direction: "up" | "down") => {
+  const handleMoveArtwork = async (
+    index: number,
+    direction: "up" | "down",
+  ) => {
     const newIndex = direction === "up" ? index - 1 : index + 1;
 
     if (newIndex < 0 || newIndex >= collection.artworks.length) {
       return;
     }
 
-    const updated = reorderCollectionArtwork(collection.id, index, newIndex);
+    try {
+      const updated = await reorderCollectionArtwork(
+        collection.id,
+        index,
+        newIndex,
+      );
 
-    if (updated) {
-      setCollection(updated);
+      if (updated) {
+        setCollection(updated);
+
+        await resolveArtworks(updated);
+      }
+    } catch (error) {
+      console.error("Failed to reorder the collection:", error);
+
+      window.alert(
+        "We couldn't reorder the collection. Please try again.",
+      );
     }
   };
 
@@ -250,63 +488,35 @@ export default function CollectionPage() {
     setShowEdit(true);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editTitle.trim()) {
       return;
     }
 
-    const updated = updateCollection(collection.id, {
-      title: editTitle.trim(),
+    try {
+      await updateCollection(collection.id, {
+        title: editTitle.trim(),
 
-      description: editDescription.trim(),
-    });
+        description: editDescription.trim(),
+      });
 
-    if (updated) {
-      setCollection(updated);
+      const updated = await getCollection(collection.id);
+
+      if (updated) {
+        setCollection(updated);
+      }
+
       setShowEdit(false);
+    } catch (error) {
+      console.error("Failed to update collection:", error);
+
+      window.alert(
+        "We couldn't save your changes. Please try again.",
+      );
     }
   };
 
-  const addMember = () => {
-    const userId = memberUserId.trim();
-
-    if (!userId) {
-      return;
-    }
-
-    const existing = collection.members.some(
-      (member) => member.userId === userId,
-    );
-
-    if (existing) {
-      window.alert("This user is already a member of the collection.");
-
-      return;
-    }
-
-    const updated = addCollectionMember(collection.id, userId, memberRole);
-
-    if (updated) {
-      setCollection(updated);
-      setMemberUserId("");
-    }
-  };
-
-  const removeMember = (userId: string) => {
-    const confirmed = window.confirm(`Remove ${userId} from this collection?`);
-
-    if (!confirmed) {
-      return;
-    }
-
-    const updated = removeCollectionMember(collection.id, userId);
-
-    if (updated) {
-      setCollection(updated);
-    }
-  };
-
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const confirmed = window.confirm(
       "Delete this collection permanently? This cannot be undone.",
     );
@@ -315,10 +525,31 @@ export default function CollectionPage() {
       return;
     }
 
-    deleteCollection(collection.id);
+    try {
+      await deleteCollection(collection.id);
 
-    window.location.href = "../collections/index.html";
+      window.location.href = "../collections/index.html";
+    } catch (error) {
+      console.error("Failed to delete collection:", error);
+
+      window.alert(
+        "We couldn't delete this collection. Please try again.",
+      );
+    }
   };
+
+  const ownerLabel = isOwner ? "You" : collection.ownerId;
+
+  const memberRows = [
+    {
+      userId: isOwner ? "You (owner)" : collection.ownerId,
+      initial: isOwner
+        ? (auth.currentUser?.uid ?? "Y").charAt(0).toUpperCase()
+        : collection.ownerId.charAt(0).toUpperCase(),
+      role: "owner" as const,
+      isYou: isOwner,
+    },
+  ];
 
   return (
     <>
@@ -330,11 +561,16 @@ export default function CollectionPage() {
           <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-4 lg:px-10">
             <a
               href="../collections/index.html"
-              className="inline-flex items-center gap-2 text-sm transition-opacity hover:opacity-60"
+              className="flex items-center gap-3 text-sm text-black/65 transition hover:text-black"
             >
-              <ArrowLeft size={17} />
-              Collections
+              <span className="flex size-8 items-center justify-center rounded-full border border-black/15">
+                <ArrowLeft className="size-4" />
+              </span>
+
+              <span className="hidden sm:inline">Back to Collections</span>
             </a>
+
+            <h1 className="font-display text-lg">Collection</h1>
 
             <div className="flex items-center gap-2">
               <button
@@ -417,14 +653,21 @@ export default function CollectionPage() {
               <div className="mt-12">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black text-sm text-white">
-                    {collection.ownerId.charAt(0).toUpperCase()}
+                    {isOwner
+                      ? (auth.currentUser?.uid ?? "Y")
+                          .charAt(0)
+                          .toUpperCase()
+                      : collection.ownerId.charAt(0).toUpperCase()}
                   </div>
 
                   <div>
-                    <p className="text-sm font-medium">{collection.ownerId}</p>
+                    <p className="text-sm font-medium">
+                      {isOwner ? "You" : ownerLabel}
+                    </p>
 
                     <p className="text-xs text-black/45">
-                      Created {formatDate(collection.createdAt)}
+                      Created{" "}
+                      {formatDate(timestampToIso(collection.createdAt))}
                     </p>
                   </div>
                 </div>
@@ -439,25 +682,25 @@ export default function CollectionPage() {
             <div className="grid grid-cols-4 gap-5 sm:gap-10">
               <Stat
                 icon={<Eye size={16} />}
-                value={collection.stats.views}
+                value="—"
                 label="Views"
               />
 
               <Stat
                 icon={<Heart size={16} />}
-                value={collection.stats.likes}
+                value="—"
                 label="Likes"
               />
 
               <Stat
                 icon={<Users size={16} />}
-                value={collection.stats.followers}
+                value="—"
                 label="Followers"
               />
 
               <Stat
                 icon={<Bookmark size={16} />}
-                value={collection.stats.saves}
+                value="—"
                 label="Saves"
               />
             </div>
@@ -465,19 +708,19 @@ export default function CollectionPage() {
             <div className="flex flex-wrap gap-2">
               <ActionButton
                 icon={<Heart size={16} />}
-                label="Like"
+                label={liked ? "Liked" : "Like"}
                 onClick={handleLike}
               />
 
               <ActionButton
                 icon={<Users size={16} />}
-                label="Follow"
+                label={followed ? "Following" : "Follow"}
                 onClick={handleFollow}
               />
 
               <ActionButton
                 icon={<Bookmark size={16} />}
-                label="Save"
+                label={savedLocal ? "Saved" : "Save"}
                 onClick={handleSave}
               />
 
@@ -550,11 +793,17 @@ export default function CollectionPage() {
                       className="group mb-5 break-inside-avoid overflow-hidden rounded-2xl bg-white"
                     >
                       <div className="relative overflow-hidden">
-                        <img
-                          src={artwork.image}
-                          alt={artwork.title}
-                          className="block w-full transition duration-500 group-hover:scale-[1.02]"
-                        />
+                        {artwork.missing ? (
+                          <div className="flex h-40 items-center justify-center bg-[#e9e1d3] text-xs uppercase tracking-[0.2em] text-black/35">
+                            Artwork unavailable
+                          </div>
+                        ) : (
+                          <img
+                            src={artwork.image}
+                            alt={artwork.title}
+                            className="block w-full transition duration-500 group-hover:scale-[1.02]"
+                          />
+                        )}
 
                         {isOwner && (
                           <button
@@ -574,15 +823,17 @@ export default function CollectionPage() {
                           {artwork.artist}
                         </p>
 
-                        <a
-                          href={`../artwork/index.html?id=${encodeURIComponent(
-                            artwork.id,
-                          )}`}
-                          className="mt-4 inline-flex items-center gap-1 text-xs uppercase tracking-[0.15em] text-black/55 transition hover:text-black"
-                        >
-                          View artwork
-                          <ArrowRight size={13} />
-                        </a>
+                        {!artwork.missing && (
+                          <a
+                            href={`../artwork/index.html?id=${encodeURIComponent(
+                              artwork.id,
+                            )}`}
+                            className="mt-4 inline-flex items-center gap-1 text-xs uppercase tracking-[0.15em] text-black/55 transition hover:text-black"
+                          >
+                            View artwork
+                            <ArrowRight size={13} />
+                          </a>
+                        )}
                       </div>
                     </article>
                   ))}
@@ -618,12 +869,6 @@ export default function CollectionPage() {
                       label="Reorder artworks"
                       onClick={() => setShowReorder(true)}
                     />
-
-                    <OwnerButton
-                      icon={<Users size={16} />}
-                      label="Manage collaborators"
-                      onClick={() => setShowMembers(true)}
-                    />
                   </div>
 
                   <button
@@ -646,23 +891,16 @@ export default function CollectionPage() {
 
                     <h3 className="mt-2 font-serif text-2xl">Members</h3>
                   </div>
-
-                  <button
-                    onClick={() => setShowMembers(true)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 transition hover:bg-black hover:text-white"
-                  >
-                    <Users size={16} />
-                  </button>
                 </div>
 
                 <div className="mt-6 space-y-4">
-                  {collection.members.map((member) => (
+                  {memberRows.map((member) => (
                     <div
-                      key={member.userId}
+                      key={member.role}
                       className="flex items-center gap-3"
                     >
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e9e1d3] text-xs font-medium">
-                        {member.userId.charAt(0).toUpperCase()}
+                        {member.initial}
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -675,6 +913,10 @@ export default function CollectionPage() {
                     </div>
                   ))}
                 </div>
+
+                <p className="mt-5 text-xs leading-5 text-black/40">
+                  Collaborators arrive with the members/permissions phase.
+                </p>
               </div>
 
               {/* STATS */}
@@ -684,20 +926,23 @@ export default function CollectionPage() {
                 </p>
 
                 <div className="mt-6 space-y-4">
-                  <MiniStat label="Artwork count" value={artworkItems.length} />
+                  <MiniStat
+                    label="Artwork count"
+                    value={artworkItems.length}
+                  />
 
-                  <MiniStat label="Views" value={collection.stats.views} />
+                  <MiniStat label="Views" value="—" />
 
-                  <MiniStat label="Likes" value={collection.stats.likes} />
+                  <MiniStat label="Likes" value="—" />
 
                   <MiniStat
                     label="Followers"
-                    value={collection.stats.followers}
+                    value="—"
                   />
 
-                  <MiniStat label="Saves" value={collection.stats.saves} />
+                  <MiniStat label="Saves" value="—" />
 
-                  <MiniStat label="Members" value={collection.members.length} />
+                  <MiniStat label="Members" value={memberRows.length} />
                 </div>
               </div>
 
@@ -713,7 +958,8 @@ export default function CollectionPage() {
                 </p>
 
                 <p className="mt-4 text-xs text-black/40">
-                  Updated {formatDate(collection.updatedAt)}
+                  Updated{" "}
+                  {formatDate(timestampToIso(collection.updatedAt))}
                 </p>
               </div>
             </aside>
@@ -747,13 +993,7 @@ export default function CollectionPage() {
                   filteredAvailableArtworks.map((artwork) => (
                     <button
                       key={artwork.id}
-                      onClick={() => {
-                        handleAddArtwork(artwork.id);
-
-                        setShowAddArtwork(false);
-
-                        setArtworkSearch("");
-                      }}
+                      onClick={() => handleAddArtwork(artwork.id)}
                       className="flex items-center gap-4 rounded-2xl border border-black/10 p-2 text-left transition hover:bg-black/5"
                     >
                       <img
@@ -774,85 +1014,6 @@ export default function CollectionPage() {
                     </button>
                   ))
                 )}
-              </div>
-            </div>
-          </Modal>
-        )}
-
-        {/* MEMBERS MODAL */}
-        {showMembers && (
-          <Modal title="Manage members" onClose={() => setShowMembers(false)}>
-            <div className="space-y-7">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-black/40">
-                  Add collaborator
-                </p>
-
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <input
-                    value={memberUserId}
-                    onChange={(event) => setMemberUserId(event.target.value)}
-                    placeholder="Username / user ID"
-                    className="min-w-0 flex-1 rounded-xl border border-black/15 bg-transparent px-4 py-3 text-sm outline-none"
-                  />
-
-                  <select
-                    value={memberRole}
-                    onChange={(event) =>
-                      setMemberRole(event.target.value as "editor" | "viewer")
-                    }
-                    className="rounded-xl border border-black/15 bg-[#f5f1e8] px-4 py-3 text-sm"
-                  >
-                    <option value="viewer">Viewer</option>
-
-                    <option value="editor">Editor</option>
-                  </select>
-
-                  <button
-                    onClick={addMember}
-                    className="rounded-xl bg-black px-5 py-3 text-sm text-white"
-                  >
-                    <UserPlus size={16} className="inline" /> Add
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-black/40">
-                  Current members
-                </p>
-
-                <div className="mt-3 space-y-2">
-                  {collection.members.map((member) => (
-                    <div
-                      key={member.userId}
-                      className="flex items-center gap-3 rounded-2xl border border-black/10 p-3"
-                    >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e9e1d3] text-sm">
-                        {member.userId.charAt(0).toUpperCase()}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {member.userId}
-                        </p>
-
-                        <p className="text-xs capitalize text-black/40">
-                          {member.role}
-                        </p>
-                      </div>
-
-                      {member.role !== "owner" && isOwner && (
-                        <button
-                          onClick={() => removeMember(member.userId)}
-                          className="rounded-full p-2 text-black/40 transition hover:bg-black/5 hover:text-red-500"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </Modal>
@@ -957,7 +1118,7 @@ function Stat({
   label,
 }: {
   icon: React.ReactNode;
-  value: number;
+  value: number | string;
   label: string;
 }) {
   return (
@@ -968,17 +1129,21 @@ function Stat({
         <span className="text-[10px] uppercase tracking-[0.15em]">{label}</span>
       </div>
 
-      <p className="mt-1 text-lg font-medium">{formatNumber(value)}</p>
+      <p className="mt-1 text-lg font-medium">
+        {typeof value === "number" ? formatNumber(value) : value}
+      </p>
     </div>
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: number }) {
+function MiniStat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="flex items-center justify-between border-b border-black/10 pb-3 last:border-0 last:pb-0">
       <span className="text-sm text-black/50">{label}</span>
 
-      <span className="font-medium">{formatNumber(value)}</span>
+      <span className="font-medium">
+        {typeof value === "number" ? formatNumber(value) : value}
+      </span>
     </div>
   );
 }

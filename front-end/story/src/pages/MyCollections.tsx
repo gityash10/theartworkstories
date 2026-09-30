@@ -3,29 +3,36 @@ import { useEffect, useState } from "react";
 
 import AppSidebar from "../components/AppSidebar";
 
-import { getCollections } from "../data/collections";
-import { availableArtworks } from "../data/artworks";
-import type { Collection } from "../types/collection";
+import {
+  listUserCollections,
+  type FirestoreCollection,
+} from "../data/firestore/collections";
 
-const CURRENT_USER_ID = "demo-user-yash";
+import { auth } from "../firebase";
 
-function getCollectionImage(collection: Collection) {
-  if (collection.coverImage) {
-    return collection.coverImage;
-  }
+const PLACEHOLDER_IMAGE = "/assets/images/story/story-mosaic.jpg";
 
-  const firstArtwork = collection.artworks
-    .slice()
-    .sort((a, b) => a.position - b.position)
-    .map((item) =>
-      availableArtworks.find((artwork) => artwork.id === item.artworkId),
-    )
-    .find(Boolean);
-
-  return firstArtwork?.image ?? "/assets/images/story/story-mosaic.jpg";
+function isFirestoreCollection(
+  value: FirestoreCollection | null,
+): value is FirestoreCollection {
+  return value !== null;
 }
 
-function formatDate(date: string) {
+function getCollectionImage(collection: FirestoreCollection) {
+  /*
+   * Collection covers and artwork images are not uploaded
+   * anywhere yet (Firebase Storage comes later) — the shared
+   * placeholder keeps the card layout intact without implying
+   * that a real cover exists.
+   */
+  return collection.coverImage || PLACEHOLDER_IMAGE;
+}
+
+function formatDate(date: string | null) {
+  if (!date) {
+    return "";
+  }
+
   return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "short",
@@ -33,16 +40,64 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
+function updatedAtLabel(collection: FirestoreCollection) {
+  const value = collection.updatedAt;
+
+  if (value && typeof value === "object" && "toDate" in value) {
+    return (value as { toDate: () => Date }).toDate().toISOString();
+  }
+
+  return null;
+}
+
 export default function MyCollectionsPage() {
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [collections, setCollections] = useState<FirestoreCollection[]>([]);
 
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
+
+  /*
+   * Load collections owned by the authenticated user from
+   * Firestore. No demo collections are shown here — the empty
+   * state is honest.
+   */
   useEffect(() => {
-    const allCollections = getCollections();
-    const ownedCollections = allCollections.filter(
-      (collection) => collection.ownerId === CURRENT_USER_ID,
-    );
+    let cancelled = false;
 
-    setCollections(ownedCollections);
+    async function loadCollections() {
+      try {
+        await auth.authStateReady();
+
+        const user = auth.currentUser;
+
+        if (!user) {
+          /* No signed-in user: the Auth Guard handles the redirect. */
+          return;
+        }
+
+        const owned = await listUserCollections(user.uid);
+
+        if (cancelled) {
+          return;
+        }
+
+        setCollections(owned.filter(isFirestoreCollection));
+        setLoadState("ready");
+      } catch (error) {
+        console.error("Failed to load collections from Firestore:", error);
+
+        if (!cancelled) {
+          setLoadState("error");
+        }
+      }
+    }
+
+    loadCollections();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -88,7 +143,20 @@ export default function MyCollectionsPage() {
             </div>
           </div>
 
-          {collections.length === 0 ? (
+          {loadState === "loading" && (
+            <div className="rounded-[2rem] border border-black/10 bg-white/50 px-6 py-20 text-center text-sm text-black/50">
+              Loading collections…
+            </div>
+          )}
+
+          {loadState === "error" && (
+            <div className="rounded-[2rem] border border-black/10 bg-white/50 px-6 py-20 text-center text-sm text-black/50">
+              We couldn't load your collections. Please refresh the page to try
+              again.
+            </div>
+          )}
+
+          {loadState === "ready" && collections.length === 0 ? (
             <div className="rounded-[2rem] border border-dashed border-black/20 bg-white/30 px-6 py-20 text-center shadow-[inset_0_0_0_1px_rgba(0,0,0,0.02)]">
               <h2 className="font-serif text-3xl">
                 You haven't created a collection yet.
@@ -106,69 +174,71 @@ export default function MyCollectionsPage() {
               </a>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {collections.map((collection) => (
-                <article
-                  key={collection.id}
-                  className="group overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <div className="relative aspect-[1.35] overflow-hidden bg-[#ded5c6]">
-                    <img
-                      src={getCollectionImage(collection)}
-                      alt={collection.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
-                    <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em]">
-                      {collection.visibility}
-                    </span>
-                  </div>
+            loadState === "ready" && (
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {collections.map((collection) => (
+                  <article
+                    key={collection.id}
+                    className="group overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div className="relative aspect-[1.35] overflow-hidden bg-[#ded5c6]">
+                      <img
+                        src={getCollectionImage(collection)}
+                        alt={collection.title}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                      <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em]">
+                        {collection.visibility}
+                      </span>
+                    </div>
 
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-serif text-2xl leading-tight text-black">
-                          {collection.title}
-                        </h3>
-                        <p className="mt-2 text-xs uppercase tracking-[0.18em] text-black/45">
-                          Created by you
-                        </p>
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-serif text-2xl leading-tight text-black">
+                            {collection.title}
+                          </h3>
+                          <p className="mt-2 text-xs uppercase tracking-[0.18em] text-black/45">
+                            Created by you
+                          </p>
+                        </div>
+                        <a
+                          href={`../collection/index.html?id=${encodeURIComponent(collection.id)}`}
+                          className="inline-flex items-center rounded-full border border-black/10 px-3 py-2 text-xs text-black/70 transition hover:bg-black hover:text-white"
+                        >
+                          Open
+                        </a>
                       </div>
+
+                      {collection.description && (
+                        <p className="mt-4 line-clamp-3 text-sm leading-6 text-black/60">
+                          {collection.description}
+                        </p>
+                      )}
+
+                      <div className="mt-5 space-y-2 border-t border-black/10 pt-4 text-xs text-black/55">
+                        <div className="flex items-center justify-between">
+                          <span>{collection.artworks.length} artworks</span>
+                          <span>{collection.tags.length} tags</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>{collection.visibility}</span>
+                          <span>{formatDate(updatedAtLabel(collection))}</span>
+                        </div>
+                      </div>
+
                       <a
                         href={`../collection/index.html?id=${encodeURIComponent(collection.id)}`}
-                        className="inline-flex items-center rounded-full border border-black/10 px-3 py-2 text-xs text-black/70 transition hover:bg-black hover:text-white"
+                        className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-black underline-offset-4 hover:underline"
                       >
-                        Open
+                        View collection
+                        <ArrowRight size={16} />
                       </a>
                     </div>
-
-                    {collection.description && (
-                      <p className="mt-4 line-clamp-3 text-sm leading-6 text-black/60">
-                        {collection.description}
-                      </p>
-                    )}
-
-                    <div className="mt-5 space-y-2 border-t border-black/10 pt-4 text-xs text-black/55">
-                      <div className="flex items-center justify-between">
-                        <span>{collection.artworks.length} artworks</span>
-                        <span>{collection.tags.length} tags</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>{collection.visibility}</span>
-                        <span>{formatDate(collection.updatedAt)}</span>
-                      </div>
-                    </div>
-
-                    <a
-                      href={`../collection/index.html?id=${encodeURIComponent(collection.id)}`}
-                      className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-black underline-offset-4 hover:underline"
-                    >
-                      View collection
-                      <ArrowRight size={16} />
-                    </a>
-                  </div>
-                </article>
-              ))}
-            </div>
+                  </article>
+                ))}
+              </div>
+            )
           )}
         </section>
       </main>

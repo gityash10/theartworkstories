@@ -13,9 +13,14 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AccountDropdown from "../components/AccountDropdown";
+
+import {
+  listPublicCollections,
+  type FirestoreCollection,
+} from "../data/firestore/collections";
 
 const categories = [
   "All",
@@ -140,9 +145,72 @@ const handleShareArtwork = () => {
   window.location.href = "../create/index.html?from=collections";
 };
 
+/*
+ * Firestore-backed public collections grid — real community
+ * collections only, clearly separated from the curated demo
+ * showcase below it.
+ */
+type PublicCollectionCard = {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  artworkCount: number;
+};
+
 export default function CollectionsPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const [publicCollections, setPublicCollections] = useState<
+    PublicCollectionCard[]
+  >([]);
+
+  const [publicState, setPublicState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPublicCollections() {
+      try {
+        const docs = await listPublicCollections();
+
+        if (cancelled) {
+          return;
+        }
+
+        setPublicCollections(
+          docs.map((collection) => ({
+            id: collection.id,
+            title: collection.title,
+            description: collection.description,
+            image:
+              collection.coverImage ||
+              "/assets/images/story/story-mosaic.jpg",
+            artworkCount: collection.artworks.length,
+          })),
+        );
+        setPublicState("ready");
+      } catch (error) {
+        console.error(
+          "Failed to load public collections from Firestore:",
+          error,
+        );
+
+        if (!cancelled) {
+          setPublicState("error");
+        }
+      }
+    }
+
+    loadPublicCollections();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#efe9df] text-[#1f1d1a]">
@@ -601,6 +669,12 @@ export default function CollectionsPage() {
                     </p>
                   </div>
 
+                  {/* Curated demo showcase only — see the real
+                      community grid beneath it. */}
+                  <span className="hidden rounded-full bg-[#e5dcc9] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-[#2d2925]/60 sm:block">
+                    Showcase
+                  </span>
+
                   <a
                     href="#"
                     className="hidden text-[15px] text-[#2d2925]/75 hover:text-[#1d1b1a] sm:block"
@@ -646,6 +720,87 @@ export default function CollectionsPage() {
                       </div>
                     </a>
                   ))}
+                </div>
+              </section>
+
+              {/* =================================================
+                  COMMUNITY COLLECTIONS (FIRESTORE)
+                  ================================================= */}
+
+              <section className="mt-14">
+                <div className="mb-5 flex items-end justify-between gap-4">
+                  <div>
+                    <h2 className="font-display text-[clamp(2.2rem,2.8vw,3rem)] leading-none text-[#181512]">
+                      Community Collections
+                    </h2>
+
+                    <p className="mt-2 text-[15px] text-[#2d2925]/65">
+                      Real collections shared by the community.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                  {publicState === "loading" && (
+                    <div className="col-span-full rounded-[20px] border border-black/5 bg-[#f3efe8] p-10 text-center text-sm text-black/50">
+                      Loading collections…
+                    </div>
+                  )}
+
+                  {publicState === "error" && (
+                    <div className="col-span-full rounded-[20px] border border-black/5 bg-[#f3efe8] p-10 text-center text-sm text-black/50">
+                      We couldn't load community collections. Please refresh
+                      the page to try again.
+                    </div>
+                  )}
+
+                  {publicState === "ready" &&
+                    publicCollections.length === 0 && (
+                      <div className="col-span-full rounded-[20px] border border-dashed border-black/15 bg-[#f3efe8]/60 p-10 text-center text-sm text-black/50">
+                        No community collections have been shared yet. Create
+                        yours from My Collections.
+                      </div>
+                    )}
+
+                  {publicState === "ready" &&
+                    publicCollections.map((collection) => (
+                      <a
+                        key={collection.id}
+                        href={`../collection/index.html?id=${encodeURIComponent(
+                          collection.id,
+                        )}`}
+                        className="group block overflow-hidden rounded-[20px] border border-black/5 bg-[#f3efe8] transition hover:-translate-y-1 hover:shadow-md"
+                      >
+                        <div className="relative h-[150px] overflow-hidden">
+                          <img
+                            src={collection.image}
+                            alt={collection.title}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          />
+
+                          <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-[#1d1b1a]">
+                              <span className="inline-flex size-3 items-center justify-center rounded-full border border-[#1d1b1a]/30">
+                                ◌
+                              </span>
+                              {collection.artworkCount} artworks
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 pb-5">
+                          <h3 className="font-display text-[22px] leading-[1.05] tracking-[-0.035em] text-[#1d1b1a]">
+                            {collection.title}
+                          </h3>
+
+                          {collection.description && (
+                            <p className="mt-2 text-[13px] leading-[1.45] text-[#322f2b]/68">
+                              {collection.description}
+                            </p>
+                          )}
+                        </div>
+                      </a>
+                    ))}
                 </div>
               </section>
             </div>
