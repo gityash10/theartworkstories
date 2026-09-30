@@ -3,7 +3,6 @@ import {
   Bookmark,
   ChevronDown,
   Compass,
-  Heart,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -13,9 +12,11 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AccountDropdown from "../components/AccountDropdown";
+
+import { listArtworks, type Artwork } from "../data/firestore/artworks";
 
 const categories = [
   "All",
@@ -33,40 +34,44 @@ const categories = [
 
 const fallbackImage = "/assets/images/story/story-mosaic.jpg";
 
-const artworks = [
-  {
-    title: "Café Terrace at Night",
-    artist: "Vincent van Gogh",
-    creator: "Aarav Mehta",
-    image: "/assets/images/artworks/cafe-terrace.jpg",
-    description: "A moment of calm in a loud world.",
-    likes: "2.4K",
-  },
-  {
-    title: "The Great Wave off Kanagawa",
-    artist: "Katsushika Hokusai",
-    creator: "Diya Sharma",
-    image: "/assets/images/artworks/great-wave.jpg",
-    description: "More than a wave — a symbol of a changing world.",
-    likes: "1.8K",
-  },
-  {
-    title: "Winged Victory",
-    artist: "Unknown",
-    creator: "Rohan Kapoor",
-    image: "/assets/images/artworks/winged-victory.jpg",
-    description: "A story of movement, power and resilience.",
-    likes: "3.1K",
-  },
-  {
-    title: "Himalayan Dawn",
-    artist: "Yash Jain",
-    creator: "Yash Jain",
-    image: "/assets/images/artworks/himalayan-dawn.jpg",
-    description: "The mountains have a way of humbling you.",
-    likes: "1.2K",
-  },
-];
+/*
+ * Discover feed card model — hydrated from Firestore via
+ * listArtworks() (public artworks only). Demo artwork arrays
+ * elsewhere on this page are presentation-only and are never
+ * mixed into these results.
+ */
+type FeedCard = {
+  id: string;
+  title: string;
+  artist: string;
+  category: string;
+  image: string;
+  description: string;
+};
+
+const STORY_PREVIEW_LENGTH = 160;
+
+function toFeedCard(artwork: Artwork): FeedCard {
+  const story = artwork.story ?? "";
+
+  return {
+    id: artwork.id,
+    title: artwork.title,
+    artist: artwork.artist,
+    category: artwork.category,
+    /*
+     * Images are not uploaded anywhere yet (imageUrl stays
+     * empty until Firebase Storage) — cards fall back to the
+     * page's existing placeholder image, the same one the old
+     * onError handler used.
+     */
+    image: artwork.imageUrl || fallbackImage,
+    description:
+      story.length > STORY_PREVIEW_LENGTH
+        ? `${story.slice(0, STORY_PREVIEW_LENGTH).trimEnd()}…`
+        : story,
+  };
+}
 
 const recentArtworks = [
   {
@@ -129,6 +134,12 @@ const places = [
 function Discover() {
   const [activeCategory, setActiveCategory] = useState("All");
 
+  const [feedArtworks, setFeedArtworks] = useState<FeedCard[]>([]);
+
+  const [feedState, setFeedState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -142,6 +153,52 @@ function Discover() {
   const closeShareQuestion = () => {
     setShareQuestionOpen(false);
   };
+
+  /*
+   * Load the public artwork feed from Firestore. On failure the
+   * page shows an error state instead of silently falling back
+   * to demo data.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFeed() {
+      try {
+        const publicArtworks = await listArtworks({
+          visibility: "public",
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setFeedArtworks(publicArtworks.map(toFeedCard));
+        setFeedState("ready");
+      } catch (error) {
+        console.error("Failed to load artworks from Firestore:", error);
+
+        if (!cancelled) {
+          setFeedState("error");
+        }
+      }
+    }
+
+    loadFeed();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /*
+   * Category chips filter the Firestore feed client-side.
+   */
+  const visibleArtworks =
+    activeCategory === "All"
+      ? feedArtworks
+      : feedArtworks.filter(
+          (artwork) => artwork.category === activeCategory,
+        );
 
   const continueToCreate = (type: "own" | "other") => {
     window.location.href = `../create/index.html?type=${type}`;
@@ -514,9 +571,31 @@ function Discover() {
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                  {artworks.map((artwork) => (
+                  {feedState === "loading" && (
+                    <div className="col-span-full rounded-2xl border border-black/5 bg-white/50 p-10 text-center text-sm text-black/50">
+                      Loading artworks…
+                    </div>
+                  )}
+
+                  {feedState === "error" && (
+                    <div className="col-span-full rounded-2xl border border-black/5 bg-white/50 p-10 text-center text-sm text-black/50">
+                      We couldn't load artworks right now. Please refresh the
+                      page to try again.
+                    </div>
+                  )}
+
+                  {feedState === "ready" && visibleArtworks.length === 0 && (
+                    <div className="col-span-full rounded-2xl border border-black/5 bg-white/50 p-10 text-center text-sm text-black/50">
+                      {activeCategory === "All"
+                        ? "No artworks have been shared yet. Be the first to share one."
+                        : `No ${activeCategory} artworks have been shared yet.`}
+                    </div>
+                  )}
+
+                  {feedState === "ready" &&
+                    visibleArtworks.map((artwork) => (
                     <article
-                      key={artwork.title}
+                      key={artwork.id}
                       className="group cursor-pointer"
                     >
                       <div className="relative aspect-[0.9] overflow-hidden rounded-xl bg-black/10">
@@ -526,21 +605,21 @@ function Discover() {
                           onError={handleImageError}
                           className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                         />
-
-                        <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-white backdrop-blur">
-                          <Heart className="size-3 fill-current" />
-
-                          {artwork.likes}
-                        </div>
                       </div>
 
                       <h3 className="mt-3 text-sm font-medium">
                         {artwork.title}
                       </h3>
 
-                      <p className="mt-1 text-xs text-black/50">
+                      <p className="text-xs text-black/50">
                         {artwork.artist}
                       </p>
+
+                      {artwork.category && (
+                        <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-black/35">
+                          {artwork.category}
+                        </p>
+                      )}
 
                       <p className="mt-3 text-xs leading-5 text-black/60">
                         {artwork.description}
