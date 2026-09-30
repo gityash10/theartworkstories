@@ -5,6 +5,13 @@ export interface Artwork {
   image: string;
 }
 
+/*
+ * Presentation-only placeholder shown when an artwork has no
+ * persistent image URL yet (image uploads arrive with Firebase
+ * Storage in a later phase).
+ */
+export const PLACEHOLDER_IMAGE = "/assets/images/story/story-mosaic.jpg";
+
 export const availableArtworks: Artwork[] = [
   {
     id: "cafe-terrace",

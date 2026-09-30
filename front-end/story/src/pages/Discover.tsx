@@ -594,8 +594,9 @@ function Discover() {
 
                   {feedState === "ready" &&
                     visibleArtworks.map((artwork) => (
-                    <article
+                    <a
                       key={artwork.id}
+                      href={`/pages/app/artwork/index.html?id=${artwork.id}`}
                       className="group cursor-pointer"
                     >
                       <div className="relative aspect-[0.9] overflow-hidden rounded-xl bg-black/10">
@@ -626,7 +627,7 @@ function Discover() {
                       </p>
 
                       <p className="mt-1 text-xs">Read the story →</p>
-                    </article>
+                    </a>
                   ))}
                 </div>
               </section>

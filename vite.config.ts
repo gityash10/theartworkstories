@@ -35,6 +35,7 @@ export default defineConfig({
         ourStory: "pages/our-story/index.html",
 
         discover: "pages/app/discover/index.html",
+        artwork: "pages/app/artwork/index.html",
         explore: "pages/app/explore/index.html",
         stories: "pages/app/stories/index.html",
         storyOfWeek: "pages/app/story-of-week/index.html",
