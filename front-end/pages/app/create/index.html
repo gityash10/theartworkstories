@@ -1655,7 +1655,19 @@
 </main>
 
 
-<script>
+<script type="module">
+
+    /* =====================================================
+       FIRESTORE ARTWORK DATA LAYER
+       Shares the project's single Firebase initialization;
+       no second Firebase instance is created here.
+       ===================================================== */
+
+    import { auth } from "/story/src/firebase.ts";
+
+    import {
+        createArtwork,
+    } from "/story/src/data/firestore/artworks.ts";
 
     /* =====================================================
        DETERMINE SHARE TYPE
@@ -1882,6 +1894,28 @@
             alert("Please select a valid image.");
 
             return;
+        }
+
+        /*
+         * Keep the selected file available to the submit
+         * handler even when the image was dropped onto the
+         * upload area instead of picked via the file dialog.
+         * The file itself is not uploaded anywhere yet.
+         */
+        if (!(fileInput.files.length && fileInput.files[0] === file)) {
+
+            try {
+
+                const transfer = new DataTransfer();
+
+                transfer.items.add(file);
+
+                fileInput.files = transfer.files;
+
+            } catch {
+
+                /* Older browsers without DataTransfer support. */
+            }
         }
 
         const reader = new FileReader();
@@ -2355,7 +2389,7 @@
 
     form.addEventListener(
         "submit",
-        function(event) {
+        async function(event) {
 
             event.preventDefault();
 
@@ -2428,17 +2462,36 @@
             }
 
 
-            /* TEMPORARY FRONTEND STATE */
+            /* PUBLISH TO FIRESTORE */
 
             publishButton.disabled = true;
 
             publishButton.textContent =
-                "Preparing artwork...";
+                "Publishing...";
+
+
+            /*
+             * Ownership comes from the authenticated Firebase
+             * user — never from form data.
+             */
+            const user = auth.currentUser;
+
+            if (!user) {
+
+                alert(
+                    "Your session has expired. Please sign in again."
+                );
+
+                window.location.href =
+                    "/pages/login/index.html";
+
+                return;
+            }
 
 
             const artworkData = {
 
-                type: shareType,
+                shareType,
 
                 title:
                     document
@@ -2496,31 +2549,53 @@
                         ? sourceLinkInput.value.trim()
                         : null,
 
+                /*
+                 * Images are not uploaded yet — only the file
+                 * name is stored as a reference.
+                 */
+                imageFileName:
+                    fileInput.files.length
+                        ? fileInput.files[0].name
+                        : null,
+
             };
 
 
-            console.log(
-                "Artwork ready for backend:",
-                artworkData
-            );
+            try {
 
+                await createArtwork(
+                    artworkData,
+                    user.uid
+                );
 
-            setTimeout(
-                function() {
+                alert(
+                    "Your artwork has been published successfully."
+                );
 
-                    alert(
-                        "Your artwork has been prepared successfully.\n\n" +
-                        "The next step is connecting this form to storage and the database so it can actually be published."
-                    );
+                window.location.href =
+                    "/pages/app/discover/index.html";
 
-                    publishButton.disabled = false;
+            } catch (error) {
 
-                    publishButton.textContent =
-                        "Share Artwork →";
+                /*
+                 * Keep the user on the page with their entered
+                 * values; details go to the developer console.
+                 */
+                console.error(
+                    "Failed to publish artwork:",
+                    error
+                );
 
-                },
-                700
-            );
+                alert(
+                    "We couldn't publish your artwork. Please try again."
+                );
+
+                publishButton.disabled = false;
+
+                publishButton.textContent =
+                    "Share Artwork →";
+
+            }
 
         }
     );

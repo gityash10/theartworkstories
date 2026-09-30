@@ -1,16 +1,16 @@
 rules_version = '2';
 
-// Baseline Firestore Security Rules — INITIAL SETUP ONLY.
+// Firestore Security Rules.
 //
-// Minimum bar: only authenticated users may read or write.
-// Fine-grained per-collection authorization (ownership checks for
-// artworks, collections, likes, follows, notifications, moderation
-// for reports, etc.) is deliberately deferred to the dedicated
-// Security Rules phase after the data model is finalized.
+// users/{uid}: profile documents owned by the authenticated user.
+// artworks/{artworkId}: UID-based ownership — any signed-in user
+// can read, but only the owner can create/modify their artworks.
+// All other planned collections (collections, comments, likes,
+// follows, notifications, activities, reports) keep the initial
+// authenticated-only baseline until their dedicated Firestore
+// migration and Security Rules phases ship.
 //
-// NOTE: this baseline is intentionally NOT "allow read, write: if true".
-// Until the detailed rules phase ships and these rules are deployed,
-// keep the database locked down in the Firebase console.
+// NOTE: this is intentionally NOT "allow read, write: if true".
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -24,10 +24,48 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // All other planned collections (artworks, collections,
-    // comments, likes, follows, notifications, activities,
-    // reports): authenticated access only for now.
-    match /{document=**} {
+    // artworks/{artworkId}: ownership is UID-based. The ownerId
+    // field must always equal the authenticated user on create
+    // and can never be reassigned on update.
+    match /artworks/{artworkId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.ownerId == request.auth.uid;
+      allow update: if request.auth != null
+                    && resource.data.ownerId == request.auth.uid
+                    && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if request.auth != null
+                    && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Remaining planned collections (collections, comments,
+    // likes, follows, notifications, activities, reports):
+    // authenticated access only for now — unchanged baseline.
+    match /collections/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /comments/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /likes/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /follows/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /notifications/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /activities/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /reports/{documentId} {
       allow read, write: if request.auth != null;
     }
   }
