@@ -35,6 +35,9 @@ import {
 } from "../data/firestore/artworks";
 
 import AppSidebar from "../components/AppSidebar";
+import LikeButton from "../components/LikeButton";
+
+import { getLikeCount } from "../data/firestore/likes";
 
 import { auth } from "../firebase";
 
@@ -119,7 +122,7 @@ export default function CollectionPage() {
 
   const [copied, setCopied] = useState(false);
 
-  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState<number | null>(null);
 
   const [followed, setFollowed] = useState(false);
 
@@ -360,13 +363,11 @@ export default function CollectionPage() {
   );
 
   /*
-   * Like / Follow / Save depend on the future Likes and Follows
-   * systems. The buttons keep working as honest local feedback
-   * until those migrations land — nothing is written to
-   * Firestore and no fake counts are shown.
+   * Likes are real: the button writes to Firestore through the
+   * shared LikeButton and the stat below is derived from like
+   * documents. Follow / Save still depend on the future Follows
+   * system and stay as honest local feedback until then.
    */
-  const handleLike = () => setLiked((value) => !value);
-
   const handleFollow = () => setFollowed((value) => !value);
 
   const handleSave = () => setSavedLocal((value) => !value);
@@ -479,6 +480,32 @@ export default function CollectionPage() {
       );
     }
   };
+
+  /*
+   * Real like count for this collection, derived from the
+   * likes collection (refreshed on page load).
+   */
+  useEffect(() => {
+    if (!collectionId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    getLikeCount("collection", collectionId)
+      .then((count) => {
+        if (!cancelled) {
+          setLikeCount(count);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load collection like count:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [collectionId]);
 
   const openEdit = () => {
     setEditTitle(collection.title);
@@ -688,7 +715,7 @@ export default function CollectionPage() {
 
               <Stat
                 icon={<Heart size={16} />}
-                value="—"
+                value={likeCount === null ? "…" : likeCount}
                 label="Likes"
               />
 
@@ -706,10 +733,9 @@ export default function CollectionPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <ActionButton
-                icon={<Heart size={16} />}
-                label={liked ? "Liked" : "Like"}
-                onClick={handleLike}
+              <LikeButton
+                targetType="collection"
+                targetId={collection.id}
               />
 
               <ActionButton
@@ -933,7 +959,10 @@ export default function CollectionPage() {
 
                   <MiniStat label="Views" value="—" />
 
-                  <MiniStat label="Likes" value="—" />
+                  <MiniStat
+                    label="Likes"
+                    value={likeCount === null ? "…" : likeCount}
+                  />
 
                   <MiniStat
                     label="Followers"

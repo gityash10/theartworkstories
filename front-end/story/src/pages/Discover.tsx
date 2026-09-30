@@ -18,6 +18,8 @@ import AccountDropdown from "../components/AccountDropdown";
 
 import { listArtworks, type Artwork } from "../data/firestore/artworks";
 
+import LikeButton from "../components/LikeButton";
+
 const categories = [
   "All",
   "Painting",
@@ -605,6 +607,13 @@ function Discover() {
                           alt={artwork.title}
                           onError={handleImageError}
                           className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                        />
+
+                        <LikeButton
+                          variant="badge"
+                          targetType="artwork"
+                          targetId={artwork.id}
+                          showCount
                         />
                       </div>
 

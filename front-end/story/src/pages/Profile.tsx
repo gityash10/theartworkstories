@@ -27,6 +27,9 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { listUserLikes } from "../data/firestore/likes";
+import { getArtwork, type Artwork } from "../data/firestore/artworks";
+
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import AccountDropdown from "../components/AccountDropdown";
@@ -112,26 +115,13 @@ const myCollections: CollectionCardData[] = [
   },
 ];
 
-const likedArtworks: ArtworkCardData[] = [
-  {
-    id: "liked-1",
-    title: "The Great Wave off Kanagawa",
-    artist: "Katsushika Hokusai",
-    image: "/assets/images/artworks/great-wave.jpg",
-  },
-  {
-    id: "liked-2",
-    title: "Composition VIII",
-    artist: "Wassily Kandinsky",
-    image: "/assets/images/artworks/composition-viii.jpg",
-  },
-  {
-    id: "liked-3",
-    title: "Nighthawks",
-    artist: "Edward Hopper",
-    image: "/assets/images/artworks/nighthawks.jpg",
-  },
-];
+/*
+ * The "Liked" tab hydrates from Firestore: the user's like
+ * documents resolved into artwork cards. Kept as an empty array
+ * here so the Overview demo section still renders while the
+ * real liked list loads into state below.
+ */
+const likedArtworks: ArtworkCardData[] = [];
 
 const activities: ActivityItem[] = [
   {
@@ -238,6 +228,13 @@ function ProfilePage() {
   >("loading");
 
   /*
+   * Real liked artworks, hydrated from the Firestore likes
+   * collection (deterministic like documents resolved back to
+   * their artwork documents).
+   */
+  const [likedArtworks, setLikedArtworks] = useState<ArtworkCardData[]>([]);
+
+  /*
    * Load the profile from Firestore (users/{uid}) using the
    * authenticated user's UID — the same document the Edit
    * Profile page reads and updates. Firebase Auth remains the
@@ -288,6 +285,49 @@ function ProfilePage() {
 
         if (firestoreProfile.photoURL) {
           setAvatarImage(firestoreProfile.photoURL);
+        }
+
+        /*
+         * Hydrate the Liked tab: the user's artwork likes from
+         * Firestore, resolved to their artwork documents.
+         * A like whose artwork was since deleted is skipped.
+         */
+        try {
+          const likes = await listUserLikes(user.uid, "artwork");
+
+          const resolved = await Promise.all(
+            likes.map(async (like) => {
+              const likedArtwork: Artwork | null = await getArtwork(
+                like.targetId,
+              );
+
+              if (!likedArtwork) {
+                return null;
+              }
+
+              return {
+                id: likedArtwork.id,
+                title: likedArtwork.title || "Untitled artwork",
+                artist: likedArtwork.artist || "Unknown artist",
+                image: likedArtwork.imageUrl ||
+                  "/assets/images/story/story-mosaic.jpg",
+              } as ArtworkCardData;
+            }),
+          );
+
+          if (!cancelled) {
+            setLikedArtworks(
+              resolved.filter(
+                (card): card is ArtworkCardData => card !== null,
+              ),
+            );
+          }
+        } catch (likesError) {
+          /*
+           * The profile itself loaded fine — the Liked tab just
+           * stays empty rather than failing the whole page.
+           */
+          console.error("Failed to load liked artworks:", likesError);
         }
 
         setLoadState("ready");

@@ -13,6 +13,7 @@ import {
 
 import AccountDropdown from "../components/AccountDropdown";
 import AppSidebar from "../components/AppSidebar";
+import LikeButton from "../components/LikeButton";
 
 import {
   deleteArtwork,
@@ -1113,6 +1114,12 @@ function ArtworkDetail() {
                   alt={artwork.title}
                   className="aspect-[16/9] h-full w-full object-cover"
                 />
+              </div>
+
+              {/* ACTIONS — the standard like pill (same pattern as
+                  Story of the Week); state lives in Firestore. */}
+              <div className="mt-6 flex flex-wrap items-center gap-2">
+                <LikeButton targetType="artwork" targetId={artwork.id} />
               </div>
 
               {/* STORY */}
