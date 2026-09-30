@@ -26,17 +26,29 @@ import { useEffect, useState } from "react";
 
 import AccountDropdown from "../components/AccountDropdown";
 
+import { auth } from "../firebase";
+
+import {
+  ensureUserProfile,
+  getUserProfile,
+  updateUserProfile,
+} from "../data/firestore/users";
+
 const DEFAULT_COVER = "/assets/images/story/hero-collage.jpg";
 
 const DEFAULT_PROFILE_IMAGE: string | null = null;
 
-const DEFAULT_PROFILE = {
-  name: "Yash Jain",
-  username: "@yashjain",
-  bio: "Exploring the stories, ideas and emotions hidden inside great works of art.",
-  location: "India",
-  website: "portfolio.com",
-  joinedDate: "2026",
+/*
+ * Initial (empty) form values — replaced by the Firestore
+ * profile once users/{uid} has loaded.
+ */
+const EMPTY_PROFILE = {
+  name: "",
+  username: "",
+  bio: "",
+  location: "",
+  website: "",
+  joinedDate: "",
 };
 
 type SidebarLinkProps = {
@@ -47,6 +59,21 @@ type SidebarLinkProps = {
   collapsed?: boolean;
   onClick?: () => void;
 };
+
+/*
+ * Firestore stores joinedAt as a server Timestamp. The "Joined
+ * Date" input keeps its existing free-text editing behavior and
+ * is stored as a string field alongside it.
+ */
+function joinedYear(joinedAt: unknown): string {
+  if (joinedAt && typeof joinedAt === "object" && "toDate" in joinedAt) {
+    return String(
+      (joinedAt as { toDate: () => Date }).toDate().getFullYear(),
+    );
+  }
+
+  return "";
+}
 
 function SidebarLink({
   href,
@@ -85,7 +112,7 @@ function EditProfilePage() {
     DEFAULT_PROFILE_IMAGE,
   );
 
-  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [profile, setProfile] = useState(EMPTY_PROFILE);
 
   const [isPublic, setIsPublic] = useState(true);
 
@@ -93,63 +120,85 @@ function EditProfilePage() {
 
   const [saved, setSaved] = useState(false);
 
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [saveError, setSaveError] = useState(false);
+
+  const [loadState, setLoadState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+
   const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
 
   const [profileObjectUrl, setProfileObjectUrl] = useState<string | null>(null);
 
   /*
-   * Load saved profile text data if it exists.
+   * Load the profile from Firestore (users/{uid}) using the
+   * authenticated user's UID. Backfill a missing document via
+   * ensureUserProfile (document ID = Auth UID, no duplicates).
    */
   useEffect(() => {
-    try {
-      const savedProfile = localStorage.getItem("the-artwork-stories-profile");
+    let cancelled = false;
 
-      if (!savedProfile) {
-        return;
+    async function loadProfile() {
+      try {
+        await auth.authStateReady();
+
+        const user = auth.currentUser;
+
+        if (!user) {
+          /* No signed-in user: the Auth Guard handles the redirect. */
+          return;
+        }
+
+        let firestoreProfile = await getUserProfile(user.uid);
+
+        if (!firestoreProfile) {
+          await ensureUserProfile(user);
+          firestoreProfile = await getUserProfile(user.uid);
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!firestoreProfile) {
+          setLoadState("error");
+          return;
+        }
+
+        setProfile({
+          name: firestoreProfile.displayName,
+          username: firestoreProfile.username,
+          bio: firestoreProfile.bio,
+          location: firestoreProfile.location,
+          website: firestoreProfile.website,
+          joinedDate: joinedYear(firestoreProfile.joinedAt),
+        });
+
+        if (firestoreProfile.photoURL) {
+          setProfileImage(firestoreProfile.photoURL);
+        }
+
+        if (firestoreProfile.coverImage) {
+          setCoverImage(firestoreProfile.coverImage);
+        }
+
+        setLoadState("ready");
+      } catch (error) {
+        console.error("Failed to load profile from Firestore:", error);
+
+        if (!cancelled) {
+          setLoadState("error");
+        }
       }
-
-      const parsed = JSON.parse(savedProfile);
-
-      setProfile({
-        name:
-          typeof parsed.name === "string" ? parsed.name : DEFAULT_PROFILE.name,
-
-        username:
-          typeof parsed.username === "string"
-            ? parsed.username
-            : DEFAULT_PROFILE.username,
-
-        bio: typeof parsed.bio === "string" ? parsed.bio : DEFAULT_PROFILE.bio,
-
-        location:
-          typeof parsed.location === "string"
-            ? parsed.location
-            : DEFAULT_PROFILE.location,
-
-        website:
-          typeof parsed.website === "string"
-            ? parsed.website
-            : DEFAULT_PROFILE.website,
-
-        joinedDate:
-          typeof parsed.joinedDate === "string"
-            ? parsed.joinedDate
-            : DEFAULT_PROFILE.joinedDate,
-      });
-
-      if (typeof parsed.isPublic === "boolean") {
-        setIsPublic(parsed.isPublic);
-      }
-
-      if (typeof parsed.showLikes === "boolean") {
-        setShowLikes(parsed.showLikes);
-      }
-    } catch {
-      /*
-       * Ignore malformed localStorage data
-       * and keep the default profile.
-       */
     }
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /*
@@ -238,27 +287,51 @@ function EditProfilePage() {
   };
 
   /*
-   * Save profile information.
+   * Save profile information to Firestore (users/{uid}).
    */
-  const handleSave = () => {
-    try {
-      localStorage.setItem(
-        "the-artwork-stories-profile",
-        JSON.stringify({
-          ...profile,
-          isPublic,
-          showLikes,
-        }),
-      );
-    } catch {
-      // Ignore localStorage errors.
+  const handleSave = async () => {
+    if (isSaving) {
+      return;
     }
 
-    /*
-     * Return to the Profile page after saving so the
-     * user sees their changes applied.
-     */
-    window.location.href = "../index.html";
+    const user = auth.currentUser;
+
+    if (!user) {
+      setSaveError(true);
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(false);
+
+    try {
+      await updateUserProfile(user.uid, {
+        displayName: profile.name,
+        username: profile.username,
+        bio: profile.bio,
+        location: profile.location,
+        website: profile.website,
+      });
+
+      setSaved(true);
+
+      /*
+       * Return to the Profile page after saving so the
+       * user sees their changes applied. Profile re-reads
+       * everything from Firestore.
+       */
+      window.location.href = "../index.html";
+    } catch (error) {
+      /*
+       * Keep the user on the page with their entered
+       * values; details go to the developer console.
+       */
+      console.error("Failed to save profile to Firestore:", error);
+
+      setSaved(false);
+      setSaveError(true);
+      setIsSaving(false);
+    }
   };
 
   /*
@@ -552,6 +625,21 @@ function EditProfilePage() {
             </p>
           </div>
 
+          {loadState === "loading" && (
+            <div className="mt-8 rounded-[22px] border border-black/5 bg-white p-10 text-center text-sm text-black/50">
+              Loading profile…
+            </div>
+          )}
+
+          {loadState === "error" && (
+            <div className="mt-8 rounded-[22px] border border-black/5 bg-white p-10 text-center text-sm text-black/50">
+              We couldn't load your profile. Please refresh the page to try
+              again.
+            </div>
+          )}
+
+          {loadState === "ready" && (
+          <>
           {/* =================================================
               TWO COLUMNS
           ================================================= */}
@@ -981,13 +1069,18 @@ function EditProfilePage() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="flex h-12 items-center justify-center gap-2 rounded-full bg-[#1d1b1a] px-5 text-sm font-medium text-white transition hover:bg-[#302d2a]"
+                  disabled={isSaving}
+                  className="flex h-12 items-center justify-center gap-2 rounded-full bg-[#1d1b1a] px-5 text-sm font-medium text-white transition hover:bg-[#302d2a] disabled:opacity-60"
                 >
-                  {saved ? (
+                  {isSaving ? (
+                    "Saving…"
+                  ) : saved ? (
                     <>
                       <Check className="size-4" />
                       Saved
                     </>
+                  ) : saveError ? (
+                    "Save failed — try again"
                   ) : (
                     "Save Changes"
                   )}
@@ -995,6 +1088,8 @@ function EditProfilePage() {
               </div>
             </div>
           </div>
+          </>
+          )}
         </div>
       </main>
     </div>

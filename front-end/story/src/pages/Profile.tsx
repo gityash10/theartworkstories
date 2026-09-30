@@ -31,6 +31,14 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import AccountDropdown from "../components/AccountDropdown";
 
+import { auth } from "../firebase";
+
+import {
+  ensureUserProfile,
+  getUserProfile,
+  type UserProfile,
+} from "../data/firestore/users";
+
 type Tab = "Overview" | "Artworks" | "Collections" | "Liked" | "Activity";
 
 type ArtworkCardData = {
@@ -160,6 +168,18 @@ const tabs: Tab[] = [
   "Activity",
 ];
 
+/*
+ * Firestore stores joinedAt as a server Timestamp; the UI shows
+ * the joined year.
+ */
+function joinedYear(joinedAt: UserProfile["joinedAt"]): string {
+  if (joinedAt && typeof joinedAt === "object" && "toDate" in joinedAt) {
+    return String((joinedAt as { toDate: () => Date }).toDate().getFullYear());
+  }
+
+  return "";
+}
+
 function SidebarLink({
   href,
   icon: Icon,
@@ -213,46 +233,78 @@ function ProfilePage() {
     joinedDate: string;
   } | null>(null);
 
+  const [loadState, setLoadState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+
   /*
-   * Load the saved profile (same source as the Edit Profile page)
-   * so the hero reflects what the user saved there.
+   * Load the profile from Firestore (users/{uid}) using the
+   * authenticated user's UID — the same document the Edit
+   * Profile page reads and updates. Firebase Auth remains the
+   * source of the identity; the Auth Guard guarantees a user.
    */
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("the-artwork-stories-profile");
+    let cancelled = false;
 
-      if (!stored) {
-        return;
+    async function loadProfile() {
+      try {
+        await auth.authStateReady();
+
+        const user = auth.currentUser;
+
+        if (!user) {
+          /* No signed-in user: the Auth Guard handles the redirect. */
+          return;
+        }
+
+        let firestoreProfile = await getUserProfile(user.uid);
+
+        /*
+         * Backfill a missing document (document ID = Auth UID,
+         * so no duplicates can be created).
+         */
+        if (!firestoreProfile) {
+          await ensureUserProfile(user);
+          firestoreProfile = await getUserProfile(user.uid);
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!firestoreProfile) {
+          setLoadState("error");
+          return;
+        }
+
+        setSavedProfile({
+          name: firestoreProfile.displayName,
+          username: firestoreProfile.username,
+          bio: firestoreProfile.bio,
+          location: firestoreProfile.location,
+          website: firestoreProfile.website.trim(),
+          joinedDate: joinedYear(firestoreProfile.joinedAt),
+        });
+
+        if (firestoreProfile.photoURL) {
+          setAvatarImage(firestoreProfile.photoURL);
+        }
+
+        setLoadState("ready");
+      } catch (error) {
+        console.error("Failed to load profile from Firestore:", error);
+
+        if (!cancelled) {
+          setLoadState("error");
+        }
       }
-
-      const parsed = JSON.parse(stored);
-
-      setSavedProfile({
-        name: typeof parsed.name === "string" ? parsed.name : "Yash Jain",
-
-        username:
-          typeof parsed.username === "string" ? parsed.username : "@yashjain",
-
-        bio:
-          typeof parsed.bio === "string"
-            ? parsed.bio
-            : "Exploring the stories, ideas and emotions hidden inside great works of art.",
-
-        location:
-          typeof parsed.location === "string" ? parsed.location : "India",
-
-        website:
-          typeof parsed.website === "string" ? parsed.website.trim() : "",
-
-        joinedDate:
-          typeof parsed.joinedDate === "string" ? parsed.joinedDate : "2026",
-      });
-    } catch {
-      /*
-       * Ignore malformed localStorage data
-       * and keep the defaults.
-       */
     }
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -510,6 +562,21 @@ function ProfilePage() {
         ======================================================= */}
 
         <div className="mx-auto max-w-[1440px] px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
+          {loadState === "loading" && (
+            <div className="rounded-[22px] border border-black/5 bg-white p-10 text-center text-sm text-black/50">
+              Loading profile…
+            </div>
+          )}
+
+          {loadState === "error" && (
+            <div className="rounded-[22px] border border-black/5 bg-white p-10 text-center text-sm text-black/50">
+              We couldn't load your profile. Please refresh the page to try
+              again.
+            </div>
+          )}
+
+          {loadState === "ready" && (
+          <>
           {/* =====================================================
               PROFILE HERO
           ===================================================== */}
@@ -561,7 +628,9 @@ function ProfilePage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-3xl font-semibold">Y</span>
+                  <span className="text-3xl font-semibold">
+                    {(savedProfile?.name?.trim()?.[0] ?? "Y").toUpperCase()}
+                  </span>
                 )}
 
                 <button
@@ -580,24 +649,25 @@ function ProfilePage() {
                 <div className="max-w-[720px]">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <h1 className="font-display text-[42px] leading-none tracking-[-0.03em] text-[#1d1b1a] sm:text-[50px]">
-                      {savedProfile?.name ?? "Yash Jain"}
+                      {savedProfile?.name ?? ""}
                     </h1>
 
                     <span className="text-sm text-black/45">
-                      {savedProfile?.username ?? "@yashjain"}
+                      {savedProfile?.username ?? ""}
                     </span>
                   </div>
 
                   <p className="mt-4 max-w-[680px] text-[15px] leading-7 text-[#2d2925]/70">
-                    {savedProfile?.bio ??
-                      "Exploring the stories, ideas and emotions hidden inside great works of art."}
+                    {savedProfile?.bio ?? ""}
                   </p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#2d2925]/55">
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin className="size-3.5" />
-                      {savedProfile?.location ?? "India"}
-                    </span>
+                    {savedProfile?.location && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <MapPin className="size-3.5" />
+                        {savedProfile.location}
+                      </span>
+                    )}
 
                     {savedWebsite && (
                       <a
@@ -612,7 +682,9 @@ function ProfilePage() {
                       </a>
                     )}
 
-                    <span>Joined {savedProfile?.joinedDate ?? "2026"}</span>
+                    {savedProfile?.joinedDate && (
+                      <span>Joined {savedProfile.joinedDate}</span>
+                    )}
                   </div>
                 </div>
 
@@ -691,6 +763,8 @@ function ProfilePage() {
           {activeTab === "Liked" && <LikedTab artworks={likedArtworks} />}
 
           {activeTab === "Activity" && <ActivityTab activities={activities} />}
+          </>
+          )}
         </div>
       </main>
     </div>
