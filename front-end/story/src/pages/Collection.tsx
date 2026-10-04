@@ -40,6 +40,10 @@ import FollowButton from "../components/FollowButton";
 
 import { getLikeCount } from "../data/firestore/likes";
 import { getFollowerCount } from "../data/firestore/follows";
+import {
+  getCollectionViewCount,
+  recordCollectionView,
+} from "../data/firestore/views";
 
 import { auth } from "../firebase";
 
@@ -127,6 +131,13 @@ export default function CollectionPage() {
   const [likeCount, setLikeCount] = useState<number | null>(null);
 
   const [followerCount, setFollowerCount] = useState<number | null>(null);
+
+  /*
+   * Firestore-derived view count (collectionViews documents).
+   * null → still loading (shown as …), matching the Likes /
+   * Followers convention.
+   */
+  const [viewCount, setViewCount] = useState<number | null>(null);
 
   const [savedLocal, setSavedLocal] = useState(false);
 
@@ -318,6 +329,44 @@ export default function CollectionPage() {
       cancelled = true;
     };
   }, [collectionId]);
+
+  /*
+   * Views: record exactly one view per page lifecycle — only
+   * once the collection document has actually loaded — then
+   * load the Firestore-derived count. The count is chained after
+   * the record so the displayed number already includes this
+   * view. data/firestore/views.ts collapses Strict Mode
+   * double-effects onto a single document (same deterministic
+   * ID + module-level Set); a refresh starts a new lifecycle and
+   * counts as another view.
+   */
+  useEffect(() => {
+    if (!collectionId || loadState !== "ready" || !collection) {
+      return;
+    }
+
+    const collectionDocId = collection.id;
+
+    let cancelled = false;
+
+    recordCollectionView(collectionDocId)
+      .catch((error) => {
+        console.error("Failed to record collection view:", error);
+      })
+      .then(() => getCollectionViewCount(collectionDocId))
+      .then((count) => {
+        if (!cancelled) {
+          setViewCount(count);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load collection view count:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [collectionId, loadState, collection?.id]);
 
   if (loadState === "loading") {
     return (
@@ -721,7 +770,7 @@ export default function CollectionPage() {
             <div className="grid grid-cols-4 gap-5 sm:gap-10">
               <Stat
                 icon={<Eye size={16} />}
-                value="—"
+                value={viewCount === null ? "…" : viewCount}
                 label="Views"
               />
 
@@ -968,7 +1017,10 @@ export default function CollectionPage() {
                     value={artworkItems.length}
                   />
 
-                  <MiniStat label="Views" value="—" />
+                  <MiniStat
+                    label="Views"
+                    value={viewCount === null ? "…" : viewCount}
+                  />
 
                   <MiniStat
                     label="Likes"

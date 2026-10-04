@@ -85,6 +85,28 @@ service cloud.firestore {
                     && resource.data.followerId == request.auth.uid;
     }
 
+    // artworkViews/{viewId}: immutable view records created
+    // when an authenticated user opens an artwork detail page.
+    // The stored viewerId must reference the requesting user, so
+    // a view can never be forged for another user; documents
+    // are never editable and never deletable after creation.
+    match /artworkViews/{viewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.viewerId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // collectionViews/{viewId}: same contract as artworkViews.
+    match /collectionViews/{viewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.viewerId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+
     match /notifications/{documentId} {
       allow read, write: if request.auth != null;
     }

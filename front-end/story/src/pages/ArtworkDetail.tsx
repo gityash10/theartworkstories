@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Bell,
   ChevronDown,
+  Eye,
   Link as LinkIcon,
   MapPin,
   Menu,
@@ -21,6 +22,11 @@ import {
   updateArtwork,
   type Artwork,
 } from "../data/firestore/artworks";
+
+import {
+  getArtworkViewCount,
+  recordArtworkView,
+} from "../data/firestore/views";
 
 import { auth } from "../firebase";
 
@@ -743,6 +749,13 @@ function ArtworkDetail() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   /*
+   * Firestore-derived view count (artworkViews documents).
+   * null → still loading (shown as …), matching the Likes /
+   * Follows convention.
+   */
+  const [viewCount, setViewCount] = useState<number | null>(null);
+
+  /*
    * The Firestore document ID arrives as ?id= in the URL.
    */
   useEffect(() => {
@@ -820,6 +833,43 @@ function ArtworkDetail() {
       cancelled = true;
     };
   }, [artworkId]);
+
+  /*
+   * Views: record exactly one view per page lifecycle once the
+   * artwork is actually shown, then load the derived count.
+   * The count runs after the record resolves so the displayed
+   * number already includes this view. data/firestore/views.ts
+   * collapses Strict Mode double-effects onto one document
+   * (same deterministic ID + module-level Set), and a refresh
+   * starts a new lifecycle — a refresh counts as another view.
+   */
+  useEffect(() => {
+    if (state !== "found" || artwork === null) {
+      return;
+    }
+
+    const artworkDocId = artwork.id;
+
+    let cancelled = false;
+
+    recordArtworkView(artworkDocId)
+      .catch((error) => {
+        console.error("Failed to record artwork view:", error);
+      })
+      .then(() => getArtworkViewCount(artworkDocId))
+      .then((count) => {
+        if (!cancelled) {
+          setViewCount(count);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load artwork view count:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state, artwork?.id]);
 
   const handleDeleted = () => {
     /*
@@ -1120,6 +1170,19 @@ function ArtworkDetail() {
                   Story of the Week); state lives in Firestore. */}
               <div className="mt-6 flex flex-wrap items-center gap-2">
                 <LikeButton targetType="artwork" targetId={artwork.id} />
+
+                {/* VIEWS — derived from artworkViews documents; …
+                    while the count is loading. */}
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/50 px-4 py-2.5 text-sm text-black/65"
+                  title="Views"
+                >
+                  <Eye className="size-4" />
+
+                  <span>{viewCount === null ? "…" : viewCount}</span>
+
+                  <span className="text-black/45">Views</span>
+                </span>
               </div>
 
               {/* STORY */}
