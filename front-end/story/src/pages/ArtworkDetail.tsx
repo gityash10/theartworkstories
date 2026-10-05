@@ -15,6 +15,7 @@ import {
 import AccountDropdown from "../components/AccountDropdown";
 import AppSidebar from "../components/AppSidebar";
 import LikeButton from "../components/LikeButton";
+import SaveButton from "../components/SaveButton";
 
 import {
   deleteArtwork,
@@ -1170,6 +1171,14 @@ function ArtworkDetail() {
                   Story of the Week); state lives in Firestore. */}
               <div className="mt-6 flex flex-wrap items-center gap-2">
                 <LikeButton targetType="artwork" targetId={artwork.id} />
+
+                {/* SAVE — Firestore-backed (artworkSaves docs);
+                    count shown inside the pill. */}
+                <SaveButton
+                  targetType="artwork"
+                  targetId={artwork.id}
+                  showCount
+                />
 
                 {/* VIEWS — derived from artworkViews documents; …
                     while the count is loading. */}

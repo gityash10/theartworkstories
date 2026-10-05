@@ -37,9 +37,11 @@ import {
 import AppSidebar from "../components/AppSidebar";
 import LikeButton from "../components/LikeButton";
 import FollowButton from "../components/FollowButton";
+import SaveButton from "../components/SaveButton";
 
 import { getLikeCount } from "../data/firestore/likes";
 import { getFollowerCount } from "../data/firestore/follows";
+import { getCollectionSaveCount } from "../data/firestore/saves";
 import {
   getCollectionViewCount,
   recordCollectionView,
@@ -139,7 +141,11 @@ export default function CollectionPage() {
    */
   const [viewCount, setViewCount] = useState<number | null>(null);
 
-  const [savedLocal, setSavedLocal] = useState(false);
+  /*
+   * Firestore-derived save count (collectionSaves documents).
+   * null → still loading (shown as …), same convention.
+   */
+  const [saveCount, setSaveCount] = useState<number | null>(null);
 
   const collectionId = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -325,6 +331,16 @@ export default function CollectionPage() {
         console.error("Failed to load collection follower count:", error);
       });
 
+    getCollectionSaveCount(collectionId)
+      .then((count) => {
+        if (!cancelled) {
+          setSaveCount(count);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load collection save count:", error);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -450,14 +466,11 @@ export default function CollectionPage() {
   );
 
   /*
-   * Likes and follows are real: the buttons write to Firestore
-   * through the shared LikeButton / FollowButton, and the stats
-   * below are derived from like/follow documents. Save still
-   * depends on a future feature and stays as honest local
-   * feedback until then.
+   * Likes, follows and saves are real: the buttons write to
+   * Firestore through the shared LikeButton / FollowButton /
+   * SaveButton components, and the stats below are derived
+   * from like/follow/save documents.
    */
-
-  const handleSave = () => setSavedLocal((value) => !value);
 
   const handleShare = async () => {
     try {
@@ -788,7 +801,7 @@ export default function CollectionPage() {
 
               <Stat
                 icon={<Bookmark size={16} />}
-                value="—"
+                value={saveCount === null ? "…" : saveCount}
                 label="Saves"
               />
             </div>
@@ -804,10 +817,9 @@ export default function CollectionPage() {
                 targetId={collection.id}
               />
 
-              <ActionButton
-                icon={<Bookmark size={16} />}
-                label={savedLocal ? "Saved" : "Save"}
-                onClick={handleSave}
+              <SaveButton
+                targetType="collection"
+                targetId={collection.id}
               />
 
               <ActionButton
@@ -1032,7 +1044,10 @@ export default function CollectionPage() {
                     value={followerCount === null ? "…" : followerCount}
                   />
 
-                  <MiniStat label="Saves" value="—" />
+                  <MiniStat
+                    label="Saves"
+                    value={saveCount === null ? "…" : saveCount}
+                  />
 
                   <MiniStat label="Members" value={memberRows.length} />
                 </div>
