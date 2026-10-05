@@ -52,11 +52,42 @@ service cloud.firestore {
                     && resource.data.ownerId == request.auth.uid;
     }
 
-    // Remaining planned collections (comments,
-    // likes, follows, notifications, activities, reports):
-    // authenticated access only for now — unchanged baseline.
-    match /comments/{documentId} {
-      allow read, write: if request.auth != null;
+    // Remaining planned collections (likes, follows,
+    // notifications, activities, reports): authenticated access
+    // only for now — unchanged baseline.
+
+    // comments/{commentId}: artwork comments with auto-generated
+    // document IDs. Any signed-in user can read; a comment is
+    // created only by its author (userId == request.auth.uid);
+    // after creation only the owner may edit or delete it. The
+    // artworkId and userId are immutable, text must be a
+    // non-empty string within the shared 2000-character limit
+    // (mirrored in comments.ts), and updatedAt must move on
+    // every edit.
+    match /comments/{commentId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.artworkId is string
+                    && request.resource.data.artworkId.size() > 0
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 2000
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.updatedAt == request.time;
+
+      allow update: if request.auth != null
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.artworkId == resource.data.artworkId
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 2000
+                    && request.resource.data.updatedAt == request.time;
+
+      allow delete: if request.auth != null
+                    && resource.data.userId == request.auth.uid;
     }
 
     // likes/{targetType_targetId_user_uid}: users own their

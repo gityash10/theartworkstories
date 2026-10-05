@@ -14,6 +14,7 @@ import {
 
 import AccountDropdown from "../components/AccountDropdown";
 import AppSidebar from "../components/AppSidebar";
+import CommentsSection from "../components/CommentsSection";
 import LikeButton from "../components/LikeButton";
 import SaveButton from "../components/SaveButton";
 
@@ -1203,6 +1204,10 @@ function ArtworkDetail() {
                 <p className="mt-5 whitespace-pre-line text-base leading-8 text-black/70">
                   {artwork.story || "No story was added to this artwork."}
                 </p>
+
+                {/* COMMENTS — Firestore-backed (comments docs);
+                    author names resolve from users/{uid}. */}
+                <CommentsSection artworkId={artwork.id} />
 
                 {/* CREDIT FOR SHARED WORK */}
                 {artwork.shareType === "other" && artwork.originalArtist && (
