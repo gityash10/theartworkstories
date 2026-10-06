@@ -1669,6 +1669,10 @@
         createArtwork,
     } from "/story/src/data/firestore/artworks.ts";
 
+    import {
+        createActivity,
+    } from "/story/src/data/firestore/activities.ts";
+
     /* =====================================================
        DETERMINE SHARE TYPE
        ===================================================== */
@@ -2563,10 +2567,23 @@
 
             try {
 
-                await createArtwork(
+                const artworkId = await createArtwork(
                     artworkData,
                     user.uid
                 );
+
+                /*
+                 * ACTIVITY — awaited (rather than
+                 * fire-and-forget) because this page navigates
+                 * away immediately, which would cancel an
+                 * in-flight write. createActivity never throws,
+                 * so the artwork above stays published even if
+                 * the activity cannot be recorded.
+                 */
+                await createActivity({
+                    type: "artwork_created",
+                    targetId: artworkId,
+                });
 
                 alert(
                     "Your artwork has been published successfully."

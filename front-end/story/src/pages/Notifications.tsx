@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Bell,
   Check,
@@ -12,116 +12,286 @@ import {
   Users,
 } from "lucide-react";
 
-type NotificationType =
-  "like" | "comment" | "follow" | "mention" | "collection";
+import {
+  listUserNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+  type Notification as FirestoreNotification,
+  type NotificationType,
+} from "../data/firestore/notifications";
 
-type Notification = {
-  id: number;
-  type: NotificationType;
-  title: string;
-  description: string;
-  time: string;
-  read: boolean;
-  avatar?: string;
+import { getUserProfile } from "../data/firestore/users";
+
+import { auth } from "../firebase";
+
+/*
+ * Notifications — Firestore-backed.
+ *
+ * Data comes from notifications/{notificationId} (recipient =
+ * the signed-in user). Actor display names resolve from
+ * users/{uid}; an unloadable profile degrades to "Someone"
+ * without breaking the page. Mark-as-read writes only the read
+ * field. Unread styling, filter tabs, empty states and the
+ * page design are unchanged from the previous mock-driven page.
+ */
+
+type ActorInfo = { displayName: string; photoURL: string };
+
+type NotificationView = FirestoreNotification & {
+  actorName: string;
+  actorPhoto: string;
 };
-
-const initialNotifications: Notification[] = [
-  {
-    id: 1,
-    type: "like",
-    title: "Someone liked your artwork",
-    description: '"The Silent Conversation" received a new like.',
-    time: "10 min ago",
-    read: false,
-  },
-  {
-    id: 2,
-    type: "comment",
-    title: "New comment on your artwork",
-    description: 'Someone commented on "The Silent Conversation".',
-    time: "1 hour ago",
-    read: false,
-  },
-  {
-    id: 3,
-    type: "follow",
-    title: "You have a new follower",
-    description: "Someone started following your profile.",
-    time: "3 hours ago",
-    read: false,
-  },
-  {
-    id: 4,
-    type: "mention",
-    title: "You were mentioned",
-    description: "Someone mentioned you in an artwork story.",
-    time: "Yesterday",
-    read: true,
-  },
-  {
-    id: 5,
-    type: "collection",
-    title: "Collection activity",
-    description: "There is new activity in a collection you follow.",
-    time: "Yesterday",
-    read: true,
-  },
-];
 
 const iconMap: Record<NotificationType, React.ReactNode> = {
   like: <Heart size={20} />,
   comment: <MessageCircle size={20} />,
   follow: <UserPlus size={20} />,
-  mention: <Users size={20} />,
-  collection: <Bookmark size={20} />,
+  save: <Bookmark size={20} />,
 };
 
+/*
+ * Reuses the existing icon color classes — "save" maps onto the
+ * collection (bookmark) styling.
+ */
 const notificationIconClass: Record<NotificationType, string> = {
   like: "notification-icon like",
   comment: "notification-icon comment",
   follow: "notification-icon follow",
-  mention: "notification-icon mention",
-  collection: "notification-icon collection",
+  save: "notification-icon collection",
 };
 
 function NotificationIcon({ type }: { type: NotificationType }) {
   return <div className={notificationIconClass[type]}>{iconMap[type]}</div>;
 }
 
+function timestampToIso(value: unknown): string | null {
+  if (value && typeof value === "object" && "toDate" in value) {
+    return (value as { toDate: () => Date }).toDate().toISOString();
+  }
+
+  return null;
+}
+
+function formatRelativeTime(date: string | null) {
+  if (!date) {
+    return "Just now";
+  }
+
+  const millis = new Date(date).getTime();
+
+  const minutes = Math.floor((Date.now() - millis) / 60000);
+
+  if (minutes < 1) {
+    return "Just now";
+  }
+
+  if (minutes < 60) {
+    return `${minutes} min${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+
+  if (days < 7) {
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+function targetHref(notification: FirestoreNotification): string | null {
+  if (notification.targetType === "artwork") {
+    return `/pages/app/artwork/index.html?id=${encodeURIComponent(
+      notification.targetId,
+    )}`;
+  }
+
+  if (notification.targetType === "collection") {
+    return `/pages/app/collection/index.html?id=${encodeURIComponent(
+      notification.targetId,
+    )}`;
+  }
+
+  return null;
+}
+
+async function resolveActors(
+  notifications: FirestoreNotification[],
+): Promise<Record<string, ActorInfo>> {
+  const uniqueActorIds = [
+    ...new Set(notifications.map((notification) => notification.actorId)),
+  ];
+
+  const profiles = await Promise.all(
+    uniqueActorIds.map(async (actorId) => {
+      try {
+        const profile = await getUserProfile(actorId);
+
+        return [
+          actorId,
+          {
+            displayName: profile?.displayName ?? "",
+            photoURL: profile?.photoURL ?? "",
+          },
+        ] as const;
+      } catch {
+        /* Graceful degradation — unknown actor. */
+        return [actorId, { displayName: "", photoURL: "" }] as const;
+      }
+    }),
+  );
+
+  return Object.fromEntries(profiles);
+}
+
 export default function Notifications() {
-  const [notifications, setNotifications] =
-    useState<Notification[]>(initialNotifications);
+  const [notifications, setNotifications] = useState<
+    NotificationView[] | null
+  >(null);
+
+  const [loadError, setLoadError] = useState(false);
 
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
+  const [actingId, setActingId] = useState<string | null>(null);
+
+  const [markingAll, setMarkingAll] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        await auth.authStateReady();
+
+        const user = auth.currentUser;
+
+        if (!user) {
+          return;
+        }
+
+        const loaded = await listUserNotifications(user.uid);
+
+        if (cancelled) {
+          return;
+        }
+
+        const actors = await resolveActors(loaded);
+
+        if (cancelled) {
+          return;
+        }
+
+        setNotifications(
+          loaded.map((notification) => ({
+            ...notification,
+
+            actorName: actors[notification.actorId]?.displayName ?? "",
+
+            actorPhoto: actors[notification.actorId]?.photoURL ?? "",
+          })),
+        );
+      } catch (error) {
+        console.error("Failed to load notifications:", error);
+
+        if (!cancelled) {
+          setLoadError(true);
+
+          setNotifications([]);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const unreadCount = useMemo(
-    () => notifications.filter((notification) => !notification.read).length,
+    () =>
+      (notifications ?? []).filter((notification) => !notification.read)
+        .length,
     [notifications],
   );
 
   const visibleNotifications = useMemo(() => {
     if (filter === "unread") {
-      return notifications.filter((notification) => !notification.read);
+      return (notifications ?? []).filter(
+        (notification) => !notification.read,
+      );
     }
 
-    return notifications;
+    return notifications ?? [];
   }, [filter, notifications]);
 
-  const markAsRead = (id: number) => {
-    setNotifications((current) =>
-      current.map((notification) =>
-        notification.id === id ? { ...notification, read: true } : notification,
-      ),
-    );
+  const markAsRead = async (id: string) => {
+    if (actingId) {
+      return;
+    }
+
+    setActingId(id);
+
+    try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        return;
+      }
+
+      await markNotificationAsRead(id, user.uid);
+
+      setNotifications((current) =>
+        (current ?? []).map((notification) =>
+          notification.id === id
+            ? { ...notification, read: true }
+            : notification,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    } finally {
+      setActingId(null);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((current) =>
-      current.map((notification) => ({
-        ...notification,
-        read: true,
-      })),
-    );
+  const markAllAsRead = async () => {
+    if (markingAll) {
+      return;
+    }
+
+    setMarkingAll(true);
+
+    try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        return;
+      }
+
+      await markAllNotificationsAsRead(user.uid);
+
+      setNotifications((current) =>
+        (current ?? []).map((notification) => ({
+          ...notification,
+          read: true,
+        })),
+      );
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    } finally {
+      setMarkingAll(false);
+    }
   };
 
   return (
@@ -609,9 +779,13 @@ export default function Notifications() {
               </div>
 
               {unreadCount > 0 && (
-                <button className="mark-all-button" onClick={markAllAsRead}>
+                <button
+                  className="mark-all-button"
+                  onClick={markAllAsRead}
+                  disabled={markingAll}
+                >
                   <CheckCheck size={17} />
-                  Mark all as read
+                  {markingAll ? "Marking…" : "Mark all as read"}
                 </button>
               )}
             </div>
@@ -639,7 +813,30 @@ export default function Notifications() {
             </div>
 
             <div className="notification-list">
-              {visibleNotifications.length === 0 ? (
+              {notifications === null ? (
+                <div className="empty-state">
+                  <div className="empty-icon">
+                    <Bell size={25} />
+                  </div>
+
+                  <h2>Loading notifications…</h2>
+
+                  <p>Fetching what is happening around your art.</p>
+                </div>
+              ) : loadError ? (
+                <div className="empty-state">
+                  <div className="empty-icon">
+                    <Bell size={25} />
+                  </div>
+
+                  <h2>Notifications unavailable</h2>
+
+                  <p>
+                    They could not be loaded — please refresh the page to try
+                    again.
+                  </p>
+                </div>
+              ) : visibleNotifications.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">
                     <Bell size={25} />
@@ -647,46 +844,81 @@ export default function Notifications() {
 
                   <h2>You’re all caught up</h2>
 
-                  <p>There are no unread notifications right now.</p>
+                  <p>
+                    {filter === "unread"
+                      ? "There are no unread notifications right now."
+                      : "No notifications yet — activity on your art will show up here."}
+                  </p>
                 </div>
               ) : (
-                visibleNotifications.map((notification) => (
-                  <article
-                    key={notification.id}
-                    className={`notification-item ${
-                      !notification.read ? "unread" : ""
-                    }`}
-                  >
-                    <NotificationIcon type={notification.type} />
+                visibleNotifications.map((notification) => {
+                  const href = targetHref(notification);
 
-                    <div className="notification-body">
-                      <h3 className="notification-title">
-                        {notification.title}
-                      </h3>
+                  return (
+                    <article
+                      key={notification.id}
+                      className={`notification-item ${
+                        !notification.read ? "unread" : ""
+                      }`}
+                    >
+                      <NotificationIcon type={notification.type} />
 
-                      <p className="notification-description">
-                        {notification.description}
-                      </p>
+                      <div className="notification-body">
+                        <h3 className="notification-title">
+                          {href ? (
+                            <a
+                              href={href}
+                              style={{
+                                color: "inherit",
+                                textDecoration: "none",
+                              }}
+                            >
+                              {notification.actorName.trim() || "Someone"}
+                            </a>
+                          ) : (
+                            notification.actorName.trim() || "Someone"
+                          )}
+                        </h3>
 
-                      <div className="notification-time">
-                        {notification.time}
+                        <p className="notification-description">
+                          {href ? (
+                            <a
+                              href={href}
+                              style={{
+                                color: "inherit",
+                                textDecoration: "none",
+                              }}
+                            >
+                              {notification.message}
+                            </a>
+                          ) : (
+                            notification.message
+                          )}
+                        </p>
+
+                        <div className="notification-time">
+                          {formatRelativeTime(
+                            timestampToIso(notification.createdAt),
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    {!notification.read && (
-                      <div className="notification-actions">
-                        <button
-                          className="notification-action"
-                          onClick={() => markAsRead(notification.id)}
-                          aria-label="Mark as read"
-                          title="Mark as read"
-                        >
-                          <Check size={17} />
-                        </button>
-                      </div>
-                    )}
-                  </article>
-                ))
+                      {!notification.read && (
+                        <div className="notification-actions">
+                          <button
+                            className="notification-action"
+                            onClick={() => markAsRead(notification.id)}
+                            disabled={actingId === notification.id}
+                            aria-label="Mark as read"
+                            title="Mark as read"
+                          >
+                            <Check size={17} />
+                          </button>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })
               )}
             </div>
           </section>

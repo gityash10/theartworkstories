@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Bell, ChevronDown, Heart, Menu, Search, X } from "lucide-react";
 
 import AccountDropdown from "../components/AccountDropdown";
+import NotificationsBell from "../components/NotificationsBell";
 
 type Story = {
   id: number;
@@ -221,7 +222,7 @@ function Stories() {
               aria-label="Notifications"
               className="text-black/60 transition hover:text-black"
             >
-              <Bell className="size-5" />
+              <NotificationsBell />
             </a>
 
             <AccountDropdown className="hidden sm:block">

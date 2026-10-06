@@ -17,6 +17,8 @@ import { useEffect, useState } from "react";
 
 import AccountDropdown from "../components/AccountDropdown";
 
+import NotificationsBell from "../components/NotificationsBell";
+
 import {
   listPublicCollections,
   type FirestoreCollection,
@@ -440,7 +442,7 @@ export default function CollectionsPage() {
               className="text-black/65 transition hover:text-black"
               aria-label="Notifications"
             >
-              <Bell className="size-5" />
+              <NotificationsBell />
             </a>
 
             <AccountDropdown>

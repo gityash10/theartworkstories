@@ -9,6 +9,10 @@ import {
   type LikeTargetType,
 } from "../data/firestore/likes";
 
+import { createActivity } from "../data/firestore/activities";
+
+import { notifyTargetOwner } from "../data/firestore/notifications";
+
 import { auth } from "../firebase";
 
 type LikeButtonProps = {
@@ -110,6 +114,38 @@ function LikeButton({
         setLiked(true);
 
         setCount((current) => (current === null ? null : current + 1));
+
+        /*
+         * NOTIFICATION — fire-and-forget: the like above has
+         * already succeeded, so a notification failure must
+         * never roll it back. Skips self-actions internally.
+         */
+        void notifyTargetOwner({
+          actorId: auth.currentUser?.uid ?? "",
+
+          type: "like",
+
+          targetType,
+
+          targetId,
+
+          message:
+            targetType === "artwork"
+              ? "liked your artwork."
+              : "liked your collection.",
+        });
+
+        /*
+         * ACTIVITY — fire-and-forget: the like above has already
+         * succeeded, and createActivity never throws, so the
+         * actor's history can never roll a like back. Unliking is
+         * deliberately not recorded.
+         */
+        void createActivity({
+          type: targetType === "artwork" ? "artwork_liked" : "collection_liked",
+
+          targetId,
+        });
       }
     } catch (error) {
       console.error("Failed to update like:", error);

@@ -14,6 +14,10 @@ import {
 
 import { getUserProfile } from "../data/firestore/users";
 
+import { createActivity } from "../data/firestore/activities";
+
+import { notifyTargetOwner } from "../data/firestore/notifications";
+
 import { auth } from "../firebase";
 
 /*
@@ -270,6 +274,34 @@ function CommentsSection({ artworkId }: { artworkId: string }) {
       }
 
       await createComment(artworkId, user.uid, validation.value);
+
+      /*
+       * NOTIFICATION — fire-and-forget: the comment above has
+       * already succeeded, so a notification failure must never
+       * roll it back. Skips self-actions internally.
+       */
+      void notifyTargetOwner({
+        actorId: user.uid,
+
+        type: "comment",
+
+        targetType: "artwork",
+
+        targetId: artworkId,
+
+        message: "commented on your artwork.",
+      });
+
+      /*
+       * ACTIVITY — fire-and-forget: the comment above has already
+       * succeeded, and createActivity never throws, so the actor's
+       * history can never roll a comment back.
+       */
+      void createActivity({
+        type: "artwork_commented",
+
+        targetId: artworkId,
+      });
 
       setDraft("");
 

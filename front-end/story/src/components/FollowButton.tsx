@@ -8,6 +8,10 @@ import {
   type FollowTargetType,
 } from "../data/firestore/follows";
 
+import { createActivity } from "../data/firestore/activities";
+
+import { notifyTargetOwner } from "../data/firestore/notifications";
+
 import { auth } from "../firebase";
 
 type FollowButtonProps = {
@@ -82,6 +86,35 @@ function FollowButton({ targetType, targetId }: FollowButtonProps) {
         await followTarget(targetType, targetId);
 
         setFollowing(true);
+
+        /*
+         * NOTIFICATION — fire-and-forget: the follow above has
+         * already succeeded, so a notification failure must
+         * never roll it back. Skips self-actions internally.
+         */
+        void notifyTargetOwner({
+          actorId: auth.currentUser?.uid ?? "",
+
+          type: "follow",
+
+          targetType,
+
+          targetId,
+
+          message: "started following your collection.",
+        });
+
+        /*
+         * ACTIVITY — fire-and-forget: the follow above has
+         * already succeeded, and createActivity never throws, so
+         * the actor's history can never roll a follow back.
+         * Unfollowing is deliberately not recorded.
+         */
+        void createActivity({
+          type: "collection_followed",
+
+          targetId,
+        });
       }
     } catch (error) {
       console.error("Failed to update follow:", error);

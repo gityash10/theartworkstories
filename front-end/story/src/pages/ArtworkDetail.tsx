@@ -33,6 +33,7 @@ import {
 import { auth } from "../firebase";
 
 import { PLACEHOLDER_IMAGE } from "../data/artworks";
+import NotificationsBell from "../components/NotificationsBell";
 
 type DetailState =
   | "loading"
@@ -948,7 +949,7 @@ function ArtworkDetail() {
               className="rounded-lg p-2 text-black/65 transition hover:bg-black/5 hover:text-black"
               aria-label="Notifications"
             >
-              <Bell className="size-5" />
+              <NotificationsBell />
             </a>
 
             <AccountDropdown className="hidden sm:flex">

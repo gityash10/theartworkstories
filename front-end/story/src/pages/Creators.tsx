@@ -3,6 +3,7 @@ import { Bell, ChevronDown, Menu, Search } from "lucide-react";
 
 import AccountDropdown from "../components/AccountDropdown";
 import AppSidebar from "../components/AppSidebar";
+import NotificationsBell from "../components/NotificationsBell";
 
 type Creator = {
   id: number;
@@ -145,7 +146,7 @@ function Creators() {
               aria-label="Notifications"
               className="text-black/60 transition hover:text-black"
             >
-              <Bell className="size-5" />
+              <NotificationsBell />
             </a>
 
             <AccountDropdown className="hidden sm:block">

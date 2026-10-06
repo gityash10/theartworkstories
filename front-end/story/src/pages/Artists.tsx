@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import AccountDropdown from "../components/AccountDropdown";
+import NotificationsBell from "../components/NotificationsBell";
 
 const artists = [
   {
@@ -230,7 +231,7 @@ function Artists() {
               className="rounded-lg p-2 text-black/65 hover:bg-black/5"
               aria-label="Notifications"
             >
-              <Bell className="size-5" />
+              <NotificationsBell />
             </a>
 
             <AccountDropdown className="hidden sm:flex">

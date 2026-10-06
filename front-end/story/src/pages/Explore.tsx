@@ -9,6 +9,7 @@ import {
 
 import AccountDropdown from "../components/AccountDropdown";
 import AppSidebar from "../components/AppSidebar";
+import NotificationsBell from "../components/NotificationsBell";
 
 const moods = [
   "Quiet",
@@ -148,7 +149,7 @@ function Explore() {
               className="rounded-lg p-2 text-black/65 transition hover:bg-black/5 hover:text-black"
               aria-label="Notifications"
             >
-              <Bell className="size-5" />
+              <NotificationsBell />
             </a>
 
             <AccountDropdown className="hidden sm:flex">

@@ -19,6 +19,7 @@ import AccountDropdown from "../components/AccountDropdown";
 import { listArtworks, type Artwork } from "../data/firestore/artworks";
 
 import LikeButton from "../components/LikeButton";
+import NotificationsBell from "../components/NotificationsBell";
 
 const categories = [
   "All",
@@ -461,7 +462,7 @@ function Discover() {
               className="text-black/65 transition hover:text-black"
               aria-label="Notifications"
             >
-              <Bell className="size-5" />
+              <NotificationsBell />
             </a>
 
             <AccountDropdown>

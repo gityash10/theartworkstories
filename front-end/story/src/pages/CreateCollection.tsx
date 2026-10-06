@@ -23,6 +23,8 @@ import {
   type Artwork,
 } from "../data/firestore/artworks";
 
+import { createActivity } from "../data/firestore/activities";
+
 import { auth } from "../firebase";
 
 /* =========================================================
@@ -351,6 +353,20 @@ function CreateCollection() {
       for (const artworkId of selectedArtworks) {
         await addArtworkToCollection(collectionId, artworkId);
       }
+
+      /*
+       * ACTIVITY — awaited but fully isolated: the collection and
+       * its artworks already exist, and createActivity never
+       * throws, so recording the activity cannot fail the create.
+       * Awaited rather than fire-and-forget because the page
+       * navigates away right after, which would cancel an
+       * in-flight write.
+       */
+      await createActivity({
+        type: "collection_created",
+
+        targetId: collectionId,
+      });
 
       /* ---------------------------------------------------
          OPEN COLLECTION PAGE

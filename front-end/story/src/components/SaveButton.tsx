@@ -13,6 +13,10 @@ import {
   type SaveTargetType,
 } from "../data/firestore/saves";
 
+import { createActivity } from "../data/firestore/activities";
+
+import { notifyTargetOwner } from "../data/firestore/notifications";
+
 import { auth } from "../firebase";
 
 type SaveButtonProps = {
@@ -143,6 +147,38 @@ function SaveButton({
         setSaved(true);
 
         setCount((current) => (current === null ? null : current + 1));
+
+        /*
+         * NOTIFICATION — fire-and-forget: the save above has
+         * already succeeded, so a notification failure must
+         * never roll it back. Skips self-actions internally.
+         */
+        void notifyTargetOwner({
+          actorId: user.uid,
+
+          type: "save",
+
+          targetType,
+
+          targetId,
+
+          message:
+            targetType === "artwork"
+              ? "saved your artwork."
+              : "saved your collection.",
+        });
+
+        /*
+         * ACTIVITY — fire-and-forget: the save above has already
+         * succeeded, and createActivity never throws, so the
+         * actor's history can never roll a save back. Unsaving is
+         * deliberately not recorded.
+         */
+        void createActivity({
+          type: targetType === "artwork" ? "artwork_saved" : "collection_saved",
+
+          targetId,
+        });
       }
     } catch (error) {
       console.error("Failed to update save:", error);

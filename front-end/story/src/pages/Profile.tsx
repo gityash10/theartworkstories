@@ -15,6 +15,7 @@ import {
   Link as LinkIcon,
   MapPin,
   Menu,
+  MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
@@ -27,12 +28,24 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import {
+  getUserActivityCount,
+  listUserActivities,
+  type Activity as FirestoreActivity,
+} from "../data/firestore/activities";
+
+import { getCollection } from "../data/firestore/collections";
+
 import { listUserLikes } from "../data/firestore/likes";
+
+import type { Timestamp } from "firebase/firestore";
 import { getArtwork, type Artwork } from "../data/firestore/artworks";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import AccountDropdown from "../components/AccountDropdown";
+
+import NotificationsBell from "../components/NotificationsBell";
 
 import { auth } from "../firebase";
 
@@ -60,12 +73,25 @@ type CollectionCardData = {
   image: string;
 };
 
+/*
+ * The Activity list is a view model over activities/{activityId}
+ * documents: it is the signed-in user's own history, and the
+ * target title plus canonical link are resolved at render time
+ * rather than denormalized into the activity document. When the
+ * target no longer exists, `href` stays null and the row remains
+ * readable without a link.
+ */
 type ActivityItem = {
+  id: string;
   icon: LucideIcon;
   text: string;
   title: string;
   time: string;
+  href: string | null;
 };
+
+/** How many activities the Overview shows before the Activity tab. */
+const OVERVIEW_ACTIVITY_LIMIT = 4;
 
 const recentArtworks: ArtworkCardData[] = [
   {
@@ -123,33 +149,6 @@ const myCollections: CollectionCardData[] = [
  */
 const likedArtworks: ArtworkCardData[] = [];
 
-const activities: ActivityItem[] = [
-  {
-    icon: Heart,
-    text: "You liked",
-    title: "The Great Wave off Kanagawa",
-    time: "2 hours ago",
-  },
-  {
-    icon: Bookmark,
-    text: "You added an artwork to",
-    title: "Art That Makes Me Think",
-    time: "Yesterday",
-  },
-  {
-    icon: Plus,
-    text: "You created",
-    title: "Quiet Moments",
-    time: "3 days ago",
-  },
-  {
-    icon: Users,
-    text: "You joined the community",
-    title: "The ArtWork Stories",
-    time: "1 week ago",
-  },
-];
-
 const tabs: Tab[] = [
   "Overview",
   "Artworks",
@@ -168,6 +167,203 @@ function joinedYear(joinedAt: UserProfile["joinedAt"]): string {
   }
 
   return "";
+}
+
+/*
+ * Activity presentation: one icon and one sentence per activity
+ * type. Only actions that exist in the product are mapped, and
+ * the wording matches the notifications copy.
+ */
+function activityIcon(type: FirestoreActivity["type"]): LucideIcon {
+  switch (type) {
+    case "artwork_created":
+    case "collection_created":
+      return Plus;
+
+    case "artwork_liked":
+    case "collection_liked":
+      return Heart;
+
+    case "artwork_saved":
+    case "collection_saved":
+      return Bookmark;
+
+    case "artwork_commented":
+      return MessageCircle;
+
+    case "collection_followed":
+      return Users;
+  }
+}
+
+function activityText(type: FirestoreActivity["type"]): string {
+  switch (type) {
+    case "artwork_created":
+    case "collection_created":
+      return "You created";
+
+    case "artwork_liked":
+    case "collection_liked":
+      return "You liked";
+
+    case "artwork_saved":
+    case "collection_saved":
+      return "You saved";
+
+    case "artwork_commented":
+      return "You commented on";
+
+    case "collection_followed":
+      return "You followed";
+  }
+}
+
+/*
+ * Relative time, worded the same way as the notifications page;
+ * older activities fall back to a formatted date. A pending
+ * server timestamp reads as "Just now".
+ */
+function formatActivityTime(createdAt: Timestamp | null): string {
+  if (!createdAt) {
+    return "Just now";
+  }
+
+  const minutes = Math.floor((Date.now() - createdAt.toMillis()) / 60000);
+
+  if (minutes < 1) {
+    return "Just now";
+  }
+
+  if (minutes < 60) {
+    return `${minutes} min${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+
+  if (days < 7) {
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+
+    month: "long",
+
+    year: "numeric",
+  }).format(createdAt.toDate());
+}
+
+const ACTIVITY_TARGET_FALLBACK = {
+  artwork: "Artwork no longer available",
+
+  collection: "Collection no longer available",
+} as const;
+
+type ResolvedActivityTarget = {
+  title: string;
+  href: string | null;
+};
+
+/*
+ * Resolve activity targets once per page load. Concurrent lookups
+ * of the same target share a single in-flight read, and a target
+ * that has been deleted — or that cannot be read — keeps the
+ * activity readable with a fallback label and no link instead of
+ * failing the page.
+ */
+const activityTargetCache = new Map<
+  string,
+  Promise<ResolvedActivityTarget>
+>();
+
+function resolveActivityTarget(
+  targetType: FirestoreActivity["targetType"],
+  targetId: string,
+): Promise<ResolvedActivityTarget> {
+  const cacheKey = `${targetType}:${targetId}`;
+
+  const cached = activityTargetCache.get(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  const pending = (async (): Promise<ResolvedActivityTarget> => {
+    try {
+      if (targetType === "artwork") {
+        const artwork = await getArtwork(targetId);
+
+        if (!artwork) {
+          return { title: ACTIVITY_TARGET_FALLBACK.artwork, href: null };
+        }
+
+        return {
+          title: artwork.title?.trim() || "Untitled artwork",
+
+          href: `/pages/app/artwork/index.html?id=${encodeURIComponent(
+            targetId,
+          )}`,
+        };
+      }
+
+      const collection = await getCollection(targetId);
+
+      if (!collection) {
+        return { title: ACTIVITY_TARGET_FALLBACK.collection, href: null };
+      }
+
+      return {
+        title: collection.title?.trim() || "Untitled collection",
+
+        href: `/pages/app/collection/index.html?id=${encodeURIComponent(
+          targetId,
+        )}`,
+      };
+    } catch (error) {
+      console.error("Failed to resolve activity target:", error);
+
+      return { title: ACTIVITY_TARGET_FALLBACK[targetType], href: null };
+    }
+  })();
+
+  activityTargetCache.set(cacheKey, pending);
+
+  return pending;
+}
+
+/** Build the Activity view models for the signed-in user. */
+async function resolveActivityItems(
+  activityDocs: FirestoreActivity[],
+): Promise<ActivityItem[]> {
+  return Promise.all(
+    activityDocs.map(async (activity) => {
+      const target = await resolveActivityTarget(
+        activity.targetType,
+
+        activity.targetId,
+      );
+
+      return {
+        id: activity.id,
+
+        icon: activityIcon(activity.type),
+
+        text: activityText(activity.type),
+
+        title: target.title,
+
+        time: formatActivityTime(activity.createdAt),
+
+        href: target.href,
+      };
+    }),
+  );
 }
 
 function SidebarLink({
@@ -233,6 +429,20 @@ function ProfilePage() {
    * their artwork documents).
    */
   const [likedArtworks, setLikedArtworks] = useState<ArtworkCardData[]>([]);
+
+  /*
+   * Real activities, hydrated from the Firestore activities
+   * collection. The history is private to the actor —
+   * listUserActivities only ever reads the signed-in user's own
+   * documents, and the rules enforce the same scope.
+   */
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+
+  /*
+   * Total activities on record (server-side count), shown on the
+   * Activity tab; null until it loads.
+   */
+  const [activityCount, setActivityCount] = useState<number | null>(null);
 
   /*
    * Load the profile from Firestore (users/{uid}) using the
@@ -328,6 +538,34 @@ function ProfilePage() {
            * stays empty rather than failing the whole page.
            */
           console.error("Failed to load liked artworks:", likesError);
+        }
+
+        /*
+         * Hydrate the Activity tab: the user's own activity
+         * documents, newest first, with each distinct target
+         * resolved to its current title and link. A deleted
+         * target keeps its row and loses its link.
+         */
+        try {
+          const [activityDocs, total] = await Promise.all([
+            listUserActivities(user.uid),
+
+            getUserActivityCount(user.uid),
+          ]);
+
+          const resolvedActivities = await resolveActivityItems(activityDocs);
+
+          if (!cancelled) {
+            setActivities(resolvedActivities);
+
+            setActivityCount(total);
+          }
+        } catch (activitiesError) {
+          /*
+           * The profile itself loaded fine — the Activity tab
+           * just stays empty rather than failing the whole page.
+           */
+          console.error("Failed to load activities:", activitiesError);
         }
 
         setLoadState("ready");
@@ -585,7 +823,7 @@ function ProfilePage() {
                 className="text-black/65 transition hover:text-black"
                 aria-label="Notifications"
               >
-                <Bell className="size-5" />
+                <NotificationsBell />
               </a>
 
               <AccountDropdown>
@@ -787,7 +1025,7 @@ function ProfilePage() {
               recentArtworks={recentArtworks}
               myCollections={myCollections}
               likedArtworks={likedArtworks}
-              activities={activities}
+              activities={activities.slice(0, OVERVIEW_ACTIVITY_LIMIT)}
               onShareArtwork={handleShareArtwork}
             />
           )}
@@ -802,7 +1040,9 @@ function ProfilePage() {
 
           {activeTab === "Liked" && <LikedTab artworks={likedArtworks} />}
 
-          {activeTab === "Activity" && <ActivityTab activities={activities} />}
+          {activeTab === "Activity" && (
+            <ActivityTab activities={activities} count={activityCount} />
+          )}
           </>
           )}
         </div>
@@ -918,34 +1158,50 @@ function OverviewContent({
         </div>
 
         <div className="mt-5 rounded-[22px] border border-black/5 bg-white p-5 sm:p-6">
-          <div className="divide-y divide-black/7">
-            {activities.map((item, index) => {
-              const Icon = item.icon;
+          {activities.length === 0 ? (
+            <p className="py-4 text-sm text-black/45">
+              Nothing here yet — the artworks you share, like, save or
+              comment on will show up here.
+            </p>
+          ) : (
+            <div className="divide-y divide-black/7">
+              {activities.map((item) => {
+                const Icon = item.icon;
 
-              return (
-                <div
-                  key={`${item.title}-${index}`}
-                  className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
-                >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f0ebe2]">
-                    <Icon className="size-4 text-[#1d1b1a]" />
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f0ebe2]">
+                      <Icon className="size-4 text-[#1d1b1a]" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-[#2d2925]/60">{item.text}</p>
+
+                      {item.href ? (
+                        <a
+                          href={item.href}
+                          className="mt-0.5 block truncate text-sm font-medium text-[#1d1b1a] transition hover:underline"
+                        >
+                          {item.title}
+                        </a>
+                      ) : (
+                        <p className="mt-0.5 truncate text-sm font-medium text-black/40">
+                          {item.title}
+                        </p>
+                      )}
+                    </div>
+
+                    <span className="shrink-0 text-xs text-black/35">
+                      {item.time}
+                    </span>
                   </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-[#2d2925]/60">{item.text}</p>
-
-                    <p className="mt-0.5 truncate text-sm font-medium text-[#1d1b1a]">
-                      {item.title}
-                    </p>
-                  </div>
-
-                  <span className="shrink-0 text-xs text-black/35">
-                    {item.time}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -1079,42 +1335,73 @@ function LikedTab({ artworks }: { artworks: ArtworkCardData[] }) {
    ACTIVITY TAB
 =============================================================== */
 
-function ActivityTab({ activities }: { activities: ActivityItem[] }) {
+function ActivityTab({
+  activities,
+  count,
+}: {
+  activities: ActivityItem[];
+  count: number | null;
+}) {
   return (
     <div className="mt-9 max-w-[820px]">
       <SectionIntro
         eyebrow="Your journey"
         title="Activity"
-        description="A record of your recent activity across The ArtWork Stories."
+        description="A record of your recent activity across The ArtWork Stories. This history is private to you."
       />
 
+      {count !== null && count > 0 && (
+        <p className="mt-4 text-xs text-black/40">
+          {count} {count === 1 ? "action" : "actions"} recorded
+        </p>
+      )}
+
       <div className="mt-7 rounded-[24px] border border-black/5 bg-white p-5 sm:p-7">
-        <div className="divide-y divide-black/7">
-          {activities.map((item, index) => {
-            const Icon = item.icon;
+        {activities.length === 0 ? (
+          <p className="py-5 text-sm text-black/45">
+            Nothing here yet — artworks you share, like, save or comment
+            on, and collections you create, like, save or follow, will show
+            up here.
+          </p>
+        ) : (
+          <div className="divide-y divide-black/7">
+            {activities.map((item) => {
+              const Icon = item.icon;
 
-            return (
-              <div
-                key={`${item.title}-${index}`}
-                className="flex items-center gap-4 py-5 first:pt-0 last:pb-0"
-              >
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#f0ebe2]">
-                  <Icon className="size-4" />
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-4 py-5 first:pt-0 last:pb-0"
+                >
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#f0ebe2]">
+                    <Icon className="size-4" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-black/55">{item.text}</p>
+
+                    {item.href ? (
+                      <a
+                        href={item.href}
+                        className="mt-1 block truncate text-sm font-medium transition hover:underline"
+                      >
+                        {item.title}
+                      </a>
+                    ) : (
+                      <p className="mt-1 truncate text-sm font-medium text-black/40">
+                        {item.title}
+                      </p>
+                    )}
+                  </div>
+
+                  <span className="shrink-0 text-xs text-black/35">
+                    {item.time}
+                  </span>
                 </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-black/55">{item.text}</p>
-
-                  <p className="mt-1 text-sm font-medium">{item.title}</p>
-                </div>
-
-                <span className="shrink-0 text-xs text-black/35">
-                  {item.time}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
