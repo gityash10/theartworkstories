@@ -248,8 +248,74 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /reports/{documentId} {
-      allow read, write: if request.auth != null;
+    // reports/{reportId}: a moderation report filed by a user about
+    // an artwork, comment, collection or another user. Reports are
+    // write-only for normal clients: there is no moderation surface
+    // in the product, so nothing may list or search them, and no
+    // client may edit or delete one. A reporter can fetch exactly one
+    // document — their own, at the deterministic ID below — which is
+    // how the UI shows "you already reported this"; the resource ==
+    // null branch keeps that existence check working before the
+    // report has been filed. The document ID is verified against the
+    // payload, so the ID scheme cannot be bypassed to stack duplicate
+    // reports under unrelated IDs. Nothing about the target is copied
+    // in, and self-reports are rejected for user targets (content
+    // targets are checked in the data layer, which can read owners).
+    match /reports/{reportId} {
+      allow get: if request.auth != null
+                 && (resource == null
+                     || resource.data.reporterId == request.auth.uid);
+
+      allow list: if false;
+
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasAll([
+                      'reporterId',
+                      'targetType',
+                      'targetId',
+                      'reason',
+                      'createdAt'
+                    ])
+                    && request.resource.data.keys().hasOnly([
+                      'reporterId',
+                      'targetType',
+                      'targetId',
+                      'reason',
+                      'description',
+                      'createdAt'
+                    ])
+                    && request.resource.data.reporterId == request.auth.uid
+                    && reportId == request.resource.data.targetType + '_' + request.resource.data.targetId + '_' + request.auth.uid + '_' + request.resource.data.reason
+                    && request.resource.data.targetType in [
+                      'artwork',
+                      'comment',
+                      'collection',
+                      'user'
+                    ]
+                    && request.resource.data.targetId is string
+                    && request.resource.data.targetId.size() > 0
+                    && request.resource.data.targetId.size() <= 128
+                    && request.resource.data.reason in [
+                      'spam',
+                      'harassment',
+                      'hate_or_abuse',
+                      'sexual_content',
+                      'violence',
+                      'copyright',
+                      'misleading',
+                      'other'
+                    ]
+                    && (request.resource.data.targetType != 'user'
+                        || request.resource.data.targetId != request.auth.uid)
+                    && (!('description' in request.resource.data)
+                        || (request.resource.data.description is string
+                            && request.resource.data.description.size() > 0
+                            && request.resource.data.description.size() <= 1000))
+                    && request.resource.data.createdAt == request.time;
+
+      allow update: if false;
+
+      allow delete: if false;
     }
   }
 }

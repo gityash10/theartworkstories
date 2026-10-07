@@ -16,6 +16,7 @@ import AccountDropdown from "../components/AccountDropdown";
 import AppSidebar from "../components/AppSidebar";
 import CommentsSection from "../components/CommentsSection";
 import LikeButton from "../components/LikeButton";
+import ReportButton from "../components/ReportDialog";
 import SaveButton from "../components/SaveButton";
 
 import {
@@ -1078,6 +1079,20 @@ function ArtworkDetail() {
                     <Trash2 className="size-4" />
                     Delete artwork
                   </button>
+                </div>
+              )}
+
+              {/* REPORT — offered to everyone except the owner, in
+                  the slot the owner's controls occupy. Reporting
+                  never touches the artwork, its likes, saves,
+                  views or comments. */}
+              {!isOwner && (
+                <div className="mt-6">
+                  <ReportButton
+                    targetType="artwork"
+                    targetId={artwork.id}
+                    targetLabel="this artwork"
+                  />
                 </div>
               )}
 

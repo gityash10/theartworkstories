@@ -36,6 +36,7 @@ import {
 
 import AppSidebar from "../components/AppSidebar";
 import LikeButton from "../components/LikeButton";
+import ReportButton from "../components/ReportDialog";
 import FollowButton from "../components/FollowButton";
 import SaveButton from "../components/SaveButton";
 
@@ -827,6 +828,16 @@ export default function CollectionPage() {
                 label="Share"
                 onClick={handleShare}
               />
+
+              {/* REPORT — owner-only collections cannot be reported
+                  by their owner; Like/Save/Follow/View are untouched. */}
+              {!isOwner && (
+                <ReportButton
+                  targetType="collection"
+                  targetId={collection.id}
+                  targetLabel="this collection"
+                />
+              )}
             </div>
           </div>
         </section>

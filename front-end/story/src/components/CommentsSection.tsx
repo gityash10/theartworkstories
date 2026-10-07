@@ -14,6 +14,8 @@ import {
 
 import { getUserProfile } from "../data/firestore/users";
 
+import ReportButton from "./ReportDialog";
+
 import { createActivity } from "../data/firestore/activities";
 
 import { notifyTargetOwner } from "../data/firestore/notifications";
@@ -504,6 +506,29 @@ function CommentsSection({ artworkId }: { artworkId: string }) {
                           </p>
                         </div>
                       </div>
+
+                      {/* REPORT — never offered on the viewer's own
+                          comment. Comment reports target the comment
+                          id, user reports target the author's uid. */}
+                      {!isOwner && !isEditing && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <ReportButton
+                            variant="icon"
+                            targetType="comment"
+                            targetId={comment.id}
+                            targetLabel="this comment"
+                            label="Report comment"
+                          />
+
+                          <ReportButton
+                            variant="icon"
+                            targetType="user"
+                            targetId={comment.userId}
+                            targetLabel="this user"
+                            label="Report user"
+                          />
+                        </div>
+                      )}
 
                       {isOwner && !isEditing && (
                         <div className="flex items-center gap-1">
