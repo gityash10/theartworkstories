@@ -31,6 +31,11 @@ import {
   recordArtworkView,
 } from "../data/firestore/views";
 
+import {
+  deleteStorageFileQuietly,
+  uploadArtworkImage,
+} from "../data/storage";
+
 import { auth } from "../firebase";
 
 import { PLACEHOLDER_IMAGE } from "../data/artworks";
@@ -101,6 +106,8 @@ type EditableState = {
   shareType: "own" | "other";
   originalArtist: string;
   source: string;
+  imageUrl: string;
+  imagePath: string;
   imageFileName: string | null;
 };
 
@@ -157,6 +164,8 @@ function EditArtworkForm({
     shareType: artwork.shareType === "other" ? "other" : "own",
     originalArtist: artwork.originalArtist ?? "",
     source: artwork.source ?? "",
+    imageUrl: artwork.imageUrl ?? "",
+    imagePath: artwork.imagePath ?? "",
     imageFileName: artwork.imageFileName ?? null,
   });
 
@@ -171,6 +180,8 @@ function EditArtworkForm({
   const [saveError, setSaveError] = useState(false);
 
   const [imageNote, setImageNote] = useState("");
+
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   const update = <K extends keyof EditableState>(
     key: K,
@@ -214,26 +225,80 @@ function EditArtworkForm({
     setVideoDraft("");
   };
 
+  /*
+   * Image selection uploads to Cloud Storage immediately, so the
+   * progress and failure states are real. The resulting URL/path
+   * are saved to the artwork document by handleSave.
+   */
   const handleImageSelect = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
 
-    if (!file) {
+    event.target.value = "";
+
+    if (!file || isImageUploading) {
       return;
     }
 
     /*
-     * Images are not uploaded anywhere yet (Firebase Storage
-     * comes later). Only the file name is kept as metadata;
-     * nothing pretends a permanent upload happened.
+     * Captured before the await: an earlier selection that was never
+     * saved lives at this path and becomes an orphan once the new
+     * upload succeeds. The artwork's saved image is left alone until
+     * Save actually succeeds.
      */
-    update("imageFileName", file.name);
-    setImageNote(
-      `Image uploads are not connected yet — "${file.name}" is saved as a reference only.`,
-    );
+    const previousImagePath = form.imagePath;
 
-    event.target.value = "";
+    setIsImageUploading(true);
+    setImageNote("Uploading image…");
+
+    uploadArtworkImage(artwork.id, file, (percent) =>
+      setImageNote(`Uploading image… ${percent}%`),
+    )
+      .then((uploaded) => {
+        if (
+          previousImagePath &&
+          previousImagePath !== artwork.imagePath &&
+          previousImagePath !== uploaded.path
+        ) {
+          void deleteStorageFileQuietly(previousImagePath);
+        }
+
+        setForm((current) => ({
+          ...current,
+          imageUrl: uploaded.url,
+          imagePath: uploaded.path,
+          imageFileName: file.name,
+        }));
+
+        setImageNote(
+          `Image uploaded — save to apply "${file.name}".`,
+        );
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to upload artwork image:", error);
+
+        setImageNote(
+          error instanceof Error
+            ? error.message
+            : "Upload failed. Please try again.",
+        );
+      })
+      .finally(() => {
+        setIsImageUploading(false);
+      });
+  };
+
+  /*
+   * Leaving the editor discards the form — remove an uploaded but
+   * unsaved image so Cancel never leaves an orphan behind.
+   */
+  const handleCancelEditing = () => {
+    if (form.imagePath && form.imagePath !== artwork.imagePath) {
+      void deleteStorageFileQuietly(form.imagePath);
+    }
+
+    onCancel();
   };
 
   const handleSave = async () => {
@@ -261,8 +326,23 @@ function EditArtworkForm({
         originalArtist:
           form.shareType === "other" ? form.originalArtist.trim() : null,
         source: form.shareType === "other" ? form.source.trim() : null,
+        imageUrl: form.imageUrl,
+        imagePath: form.imagePath,
         imageFileName: form.imageFileName,
       });
+
+      /*
+       * The document is authoritative — only now remove the image
+       * the new one replaced, and never let that cleanup fail the
+       * save.
+       */
+      if (
+        form.imagePath &&
+        artwork.imagePath &&
+        artwork.imagePath !== form.imagePath
+      ) {
+        await deleteStorageFileQuietly(artwork.imagePath);
+      }
 
       const updated: Artwork = {
         ...artwork,
@@ -280,6 +360,8 @@ function EditArtworkForm({
         originalArtist:
           form.shareType === "other" ? form.originalArtist.trim() : null,
         source: form.shareType === "other" ? form.source.trim() : null,
+        imageUrl: form.imageUrl,
+        imagePath: form.imagePath,
         imageFileName: form.imageFileName,
       };
 
@@ -302,7 +384,7 @@ function EditArtworkForm({
 
         <button
           type="button"
-          onClick={onCancel}
+          onClick={handleCancelEditing}
           className="text-sm text-black/55 transition hover:text-black"
         >
           Cancel editing
@@ -385,15 +467,29 @@ function EditArtworkForm({
           </label>
         </div>
 
-        {/* Image metadata — no upload yet */}
+        {/* Artwork image — uploaded to Cloud Storage */}
         <div className="mt-5">
           <span className="text-xs font-medium text-black/55">
             Artwork image
           </span>
 
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <label className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-black/10 px-4 text-sm transition hover:bg-black/[0.03]">
-              {form.imageFileName ? "Replace image file" : "Select image file"}
+          {form.imageUrl && (
+            <div className="mt-3 overflow-hidden rounded-xl border border-black/10">
+              <img
+                src={form.imageUrl}
+                alt="Artwork preview"
+                className="max-h-[220px] w-full object-cover"
+              />
+            </div>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label
+              className={`inline-flex h-10 items-center rounded-xl border border-black/10 px-4 text-sm transition hover:bg-black/[0.03] ${
+                isImageUploading ? "pointer-events-none opacity-60" : "cursor-pointer"
+              }`}
+            >
+              {form.imageUrl ? "Replace image" : "Select image"}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -409,14 +505,12 @@ function EditArtworkForm({
             )}
           </div>
 
-          {imageNote && (
+          {imageNote ? (
             <p className="mt-2 text-xs text-black/45">{imageNote}</p>
-          )}
-
-          {!imageNote && (
+          ) : (
             <p className="mt-2 text-xs text-black/45">
-              Image uploads are not connected yet — the file name is saved as
-              a reference only.
+              JPG, PNG or WebP up to 5 MB. The image is stored in Firebase
+              Storage under this artwork.
             </p>
           )}
         </div>
@@ -893,6 +987,15 @@ function ArtworkDetail() {
 
     try {
       await deleteArtwork(artworkId);
+
+      /*
+       * The artwork document is gone — its image would be an orphan.
+       * Cleanup is best-effort: a Storage hiccup must not make a
+       * successful deletion look failed.
+       */
+      if (artwork?.imagePath) {
+        await deleteStorageFileQuietly(artwork.imagePath);
+      }
 
       handleDeleted();
     } catch (error) {

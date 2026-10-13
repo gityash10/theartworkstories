@@ -34,9 +34,28 @@ import {
   updateUserProfile,
 } from "../data/firestore/users";
 
+import {
+  deleteStorageFileQuietly,
+  uploadProfileImage,
+  type UploadedImage,
+} from "../data/storage";
+
 const DEFAULT_COVER = "/assets/images/story/hero-collage.jpg";
 
 const DEFAULT_PROFILE_IMAGE: string | null = null;
+
+/*
+ * Upload feedback for one image field. "uploading" shows real
+ * progress; "error" shows an honest message instead of a fake
+ * success.
+ */
+type UploadState = {
+  status: "idle" | "uploading" | "error";
+  percent: number;
+  message: string;
+};
+
+const IDLE_UPLOAD: UploadState = { status: "idle", percent: 0, message: "" };
 
 /*
  * Initial (empty) form values — replaced by the Firestore
@@ -112,6 +131,25 @@ function EditProfilePage() {
     DEFAULT_PROFILE_IMAGE,
   );
 
+  /*
+   * Cloud Storage state. *Path is the saved bucket path of the
+   * current image; pending* holds an image that has been uploaded
+   * but not yet saved, so Cancel can clean it up.
+   */
+  const [coverPath, setCoverPath] = useState("");
+
+  const [avatarPath, setAvatarPath] = useState("");
+
+  const [pendingCover, setPendingCover] = useState<UploadedImage | null>(null);
+
+  const [pendingAvatar, setPendingAvatar] = useState<UploadedImage | null>(null);
+
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
+
+  const [coverUpload, setCoverUpload] = useState<UploadState>(IDLE_UPLOAD);
+
+  const [avatarUpload, setAvatarUpload] = useState<UploadState>(IDLE_UPLOAD);
+
   const [profile, setProfile] = useState(EMPTY_PROFILE);
 
   const [isPublic, setIsPublic] = useState(true);
@@ -127,10 +165,6 @@ function EditProfilePage() {
   const [loadState, setLoadState] = useState<
     "loading" | "ready" | "error"
   >("loading");
-
-  const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
-
-  const [profileObjectUrl, setProfileObjectUrl] = useState<string | null>(null);
 
   /*
    * Load the profile from Firestore (users/{uid}) using the
@@ -184,6 +218,9 @@ function EditProfilePage() {
           setCoverImage(firestoreProfile.coverImage);
         }
 
+        setAvatarPath(firestoreProfile.photoPath ?? "");
+        setCoverPath(firestoreProfile.coverPath ?? "");
+
         setLoadState("ready");
       } catch (error) {
         console.error("Failed to load profile from Firestore:", error);
@@ -202,88 +239,106 @@ function EditProfilePage() {
   }, []);
 
   /*
-   * Clean up temporary image URLs.
-   */
-  useEffect(() => {
-    return () => {
-      if (coverObjectUrl) {
-        URL.revokeObjectURL(coverObjectUrl);
-      }
-
-      if (profileObjectUrl) {
-        URL.revokeObjectURL(profileObjectUrl);
-      }
-    };
-  }, [coverObjectUrl, profileObjectUrl]);
-
-  /*
-   * Cover image handler.
+   * Cover image handler — uploads to Cloud Storage straight away
+   * (so progress and errors are real), then keeps the result as a
+   * pending change applied by Save.
    */
   const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
-
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-
-    if (!allowedTypes.includes(file.type)) {
-      event.target.value = "";
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(file);
-
-    if (coverObjectUrl) {
-      URL.revokeObjectURL(coverObjectUrl);
-    }
-
-    setCoverObjectUrl(objectUrl);
-    setCoverImage(objectUrl);
-
     event.target.value = "";
+
+    if (!file || coverUpload.status === "uploading") {
+      return;
+    }
+
+    setCoverUpload({ status: "uploading", percent: 0, message: "" });
+
+    uploadProfileImage("cover", file, (percent) =>
+      setCoverUpload({ status: "uploading", percent, message: "" }),
+    )
+      .then((uploaded) => {
+        /*
+         * A previously selected, still-unsaved cover is now an orphan
+         * — remove it rather than leaving it in the bucket.
+         */
+        if (pendingCover && pendingCover.path !== uploaded.path) {
+          void deleteStorageFileQuietly(pendingCover.path);
+        }
+
+        setPendingCover(uploaded);
+        setCoverImage(uploaded.url);
+        setCoverUpload(IDLE_UPLOAD);
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to upload cover image:", error);
+
+        setCoverUpload({
+          status: "error",
+          percent: 0,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Upload failed. Please try again.",
+        });
+      });
   };
 
   /*
-   * Profile image handler.
+   * Profile image handler — same pattern as the cover.
    */
   const handleProfileImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
-
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-
-    if (!allowedTypes.includes(file.type)) {
-      event.target.value = "";
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(file);
-
-    if (profileObjectUrl) {
-      URL.revokeObjectURL(profileObjectUrl);
-    }
-
-    setProfileObjectUrl(objectUrl);
-    setProfileImage(objectUrl);
-
     event.target.value = "";
+
+    if (!file || avatarUpload.status === "uploading") {
+      return;
+    }
+
+    setAvatarUpload({ status: "uploading", percent: 0, message: "" });
+
+    uploadProfileImage("avatar", file, (percent) =>
+      setAvatarUpload({ status: "uploading", percent, message: "" }),
+    )
+      .then((uploaded) => {
+        /* Discard a previously selected, still-unsaved avatar. */
+        if (pendingAvatar && pendingAvatar.path !== uploaded.path) {
+          void deleteStorageFileQuietly(pendingAvatar.path);
+        }
+
+        setPendingAvatar(uploaded);
+        setProfileImage(uploaded.url);
+        setAvatarRemoved(false);
+        setAvatarUpload(IDLE_UPLOAD);
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to upload profile image:", error);
+
+        setAvatarUpload({
+          status: "error",
+          percent: 0,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Upload failed. Please try again.",
+        });
+      });
   };
 
   /*
-   * Remove profile image.
+   * Remove profile image. Discards a pending upload immediately and
+   * clears the saved avatar when changes are saved.
    */
   const handleRemoveProfileImage = () => {
-    if (profileObjectUrl) {
-      URL.revokeObjectURL(profileObjectUrl);
-      setProfileObjectUrl(null);
+    if (pendingAvatar) {
+      void deleteStorageFileQuietly(pendingAvatar.path);
+      setPendingAvatar(null);
     }
 
     setProfileImage(null);
+    setAvatarRemoved(true);
+    setAvatarUpload(IDLE_UPLOAD);
   };
 
   /*
@@ -311,7 +366,33 @@ function EditProfilePage() {
         bio: profile.bio,
         location: profile.location,
         website: profile.website,
+        ...(pendingCover
+          ? { coverImage: pendingCover.url, coverPath: pendingCover.path }
+          : {}),
+        ...(pendingAvatar
+          ? { photoURL: pendingAvatar.url, photoPath: pendingAvatar.path }
+          : {}),
+        ...(avatarRemoved && !pendingAvatar
+          ? { photoURL: "", photoPath: "" }
+          : {}),
       });
+
+      /*
+       * Firestore is now authoritative — only then remove the files
+       * the new image replaced. Cleanup is best-effort so it can
+       * never make a successful save look failed.
+       */
+      if (pendingCover && coverPath && coverPath !== pendingCover.path) {
+        await deleteStorageFileQuietly(coverPath);
+      }
+
+      if (pendingAvatar && avatarPath && avatarPath !== pendingAvatar.path) {
+        await deleteStorageFileQuietly(avatarPath);
+      }
+
+      if (avatarRemoved && !pendingAvatar && avatarPath) {
+        await deleteStorageFileQuietly(avatarPath);
+      }
 
       setSaved(true);
 
@@ -338,6 +419,18 @@ function EditProfilePage() {
    * Cancel editing.
    */
   const handleCancel = () => {
+    /*
+     * Uploads that were never saved would otherwise become orphan
+     * files — remove them before leaving the page.
+     */
+    if (pendingCover) {
+      void deleteStorageFileQuietly(pendingCover.path);
+    }
+
+    if (pendingAvatar) {
+      void deleteStorageFileQuietly(pendingAvatar.path);
+    }
+
     window.location.href = "../index.html";
   };
 
@@ -667,9 +760,17 @@ function EditProfilePage() {
                       </p>
                     </div>
 
-                    <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 text-sm transition hover:bg-white">
+                    <label
+                      className={`inline-flex h-10 items-center justify-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 text-sm transition hover:bg-white ${
+                        coverUpload.status === "uploading"
+                          ? "pointer-events-none opacity-60"
+                          : "cursor-pointer"
+                      }`}
+                    >
                       <Camera className="size-4" />
-                      Change Cover
+                      {coverUpload.status === "uploading"
+                        ? "Uploading…"
+                        : "Change Cover"}
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/webp"
@@ -690,6 +791,8 @@ function EditProfilePage() {
                   <p className="mt-3 text-xs text-black/40">
                     Recommended size: 1500 × 500 px. Supports JPG, PNG, or WEBP.
                   </p>
+
+                  <UploadStatus state={coverUpload} />
                 </div>
               </section>
 
@@ -728,7 +831,11 @@ function EditProfilePage() {
                       {/* Camera badge */}
                       <label
                         title="Change profile photo"
-                        className="absolute bottom-0 right-0 flex size-10 cursor-pointer items-center justify-center rounded-full border-4 border-white bg-[#f5f2ea] shadow-sm transition hover:bg-white"
+                        className={`absolute bottom-0 right-0 flex size-10 items-center justify-center rounded-full border-4 border-white bg-[#f5f2ea] shadow-sm transition hover:bg-white ${
+                          avatarUpload.status === "uploading"
+                            ? "pointer-events-none opacity-60"
+                            : "cursor-pointer"
+                        }`}
                       >
                         <Camera className="size-4" />
 
@@ -744,9 +851,17 @@ function EditProfilePage() {
                     {/* Buttons */}
                     <div className="min-w-0">
                       <div className="flex flex-wrap gap-3">
-                        <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1d1b1a] px-5 text-sm font-medium text-white transition hover:bg-[#302d2a]">
+                        <label
+                          className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#1d1b1a] px-5 text-sm font-medium text-white transition hover:bg-[#302d2a] ${
+                            avatarUpload.status === "uploading"
+                              ? "pointer-events-none opacity-60"
+                              : "cursor-pointer"
+                          }`}
+                        >
                           <Camera className="size-4" />
-                          Change Photo
+                          {avatarUpload.status === "uploading"
+                            ? "Uploading…"
+                            : "Change Photo"}
                           <input
                             type="file"
                             accept="image/png,image/jpeg,image/webp"
@@ -759,7 +874,8 @@ function EditProfilePage() {
                           <button
                             type="button"
                             onClick={handleRemoveProfileImage}
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white/70 px-5 text-sm transition hover:bg-white"
+                            disabled={avatarUpload.status === "uploading"}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white/70 px-5 text-sm transition hover:bg-white disabled:opacity-60"
                           >
                             <Trash2 className="size-4" />
                             Remove
@@ -771,6 +887,8 @@ function EditProfilePage() {
                         Recommended size: 400 × 400 px. Supports JPG, PNG, or
                         WEBP.
                       </p>
+
+                      <UploadStatus state={avatarUpload} />
                     </div>
                   </div>
                 </div>
@@ -1069,7 +1187,11 @@ function EditProfilePage() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={isSaving}
+                  disabled={
+                    isSaving ||
+                    coverUpload.status === "uploading" ||
+                    avatarUpload.status === "uploading"
+                  }
                   className="flex h-12 items-center justify-center gap-2 rounded-full bg-[#1d1b1a] px-5 text-sm font-medium text-white transition hover:bg-[#302d2a] disabled:opacity-60"
                 >
                   {isSaving ? (
@@ -1115,6 +1237,25 @@ function FormField({
 
       {children}
     </label>
+  );
+}
+
+/* ===============================================================
+   UPLOAD STATUS
+   Real progress while uploading; an honest message on failure.
+=============================================================== */
+
+function UploadStatus({ state }: { state: UploadState }) {
+  if (state.status === "idle") {
+    return null;
+  }
+
+  if (state.status === "error") {
+    return <p className="mt-2 text-xs text-red-600">{state.message}</p>;
+  }
+
+  return (
+    <p className="mt-2 text-xs text-black/50">Uploading… {state.percent}%</p>
   );
 }
 

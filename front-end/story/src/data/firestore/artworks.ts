@@ -6,11 +6,15 @@
  * authenticated Firebase user (auth.currentUser.uid); a
  * client-provided owner id is never trusted.
  *
- * NOTE ON IMAGES: artwork image files are not uploaded anywhere
- * yet (Firebase Storage comes later). Documents currently store
- * `imageFileName` for reference; `imageUrl` stays empty until
- * uploads exist. The create-form preview is a local data URL
- * that never persists.
+ * NOTE ON IMAGES: artwork image files live in Cloud Storage under
+ * artworks/{artworkId}/images/. Documents store `imageUrl` (the
+ * download URL), `imagePath` (the bucket path, so the file can be
+ * replaced or removed) and `imageFileName` (the original file
+ * name, kept as metadata).
+ *
+ * NOTE ON AUDIO/VIDEO: artworks/{artworkId}/audio/ and .../video/
+ * remain reserved but unused — the current UI stores an audio file
+ * name and video links only, so no media upload is wired up yet.
  *
  * Firestore is initialized once in story/src/firebase.ts (`db`).
  */
@@ -83,10 +87,13 @@ export interface Artwork {
 
   source: string | null;
 
-  /** Empty until Firebase Storage uploads are implemented. */
+  /** Download URL of the artwork image in Cloud Storage. */
   imageUrl: string;
 
-  /** Reference to the selected image file; not uploaded yet. */
+  /** Bucket path of the artwork image; used for cleanup on replace/delete. */
+  imagePath: string;
+
+  /** Original file name of the selected image, kept as metadata. */
   imageFileName: string | null;
 
   /** Server timestamp set when the document is first created. */
@@ -156,6 +163,8 @@ export async function createArtwork(
     source: input.source ?? null,
 
     imageUrl: input.imageUrl ?? "",
+
+    imagePath: input.imagePath ?? "",
 
     imageFileName: input.imageFileName ?? null,
 

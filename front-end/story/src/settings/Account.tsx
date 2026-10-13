@@ -27,6 +27,19 @@ import {
   type UserProfile,
 } from "../data/firestore/users";
 
+import {
+  deleteStorageFileQuietly,
+  uploadProfileImage,
+} from "../data/storage";
+
+type UploadState = {
+  status: "idle" | "uploading" | "error";
+  percent: number;
+  message: string;
+};
+
+const IDLE_UPLOAD: UploadState = { status: "idle", percent: 0, message: "" };
+
 /* ===============================================================
    ACCOUNT SETTINGS
 
@@ -70,6 +83,8 @@ export default function Account() {
   const [saved, setSaved] = useState<AccountInfo | null>(null);
   const [draft, setDraft] = useState<AccountInfo | null>(null);
   const [avatar, setAvatar] = useState<string>("");
+  const [avatarPath, setAvatarPath] = useState("");
+  const [avatarUpload, setAvatarUpload] = useState<UploadState>(IDLE_UPLOAD);
   const [showPhoneForm, setShowPhoneForm] = useState(false);
   const [savedFlash, flashSaved, savedLabel] = useSavedIndicator();
   const [isSaving, setIsSaving] = useState(false);
@@ -140,6 +155,8 @@ export default function Account() {
           setAvatar(firestoreProfile.photoURL);
         }
 
+        setAvatarPath(firestoreProfile.photoPath ?? "");
+
         setLoadState("ready");
       } catch (error) {
         console.error("Failed to load account settings from Firestore:", error);
@@ -164,37 +181,98 @@ export default function Account() {
     setDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
+  /*
+   * Upload the chosen photo to Cloud Storage, then write the
+   * download URL + bucket path to users/{uid}. The replaced file is
+   * removed only after Firestore is updated.
+   */
   const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
-    if (!file || !file.type.startsWith("image/")) {
-      event.target.value = "";
+    event.target.value = "";
+
+    if (!file || avatarUpload.status === "uploading") {
       return;
     }
 
-    setAvatar((current) => {
-      if (current.startsWith("blob:")) {
-        URL.revokeObjectURL(current);
-      }
+    const uid = auth.currentUser?.uid;
 
-      return URL.createObjectURL(file);
-    });
+    if (!uid) {
+      setAvatarUpload({
+        status: "error",
+        percent: 0,
+        message: "You must be signed in to change your photo.",
+      });
 
-    removedAvatarRef.current = false;
-    event.target.value = "";
+      return;
+    }
+
+    setAvatarUpload({ status: "uploading", percent: 0, message: "" });
+
+    uploadProfileImage("avatar", file, (percent) =>
+      setAvatarUpload({ status: "uploading", percent, message: "" }),
+    )
+      .then(async (uploaded) => {
+        await updateUserProfile(uid, {
+          photoURL: uploaded.url,
+          photoPath: uploaded.path,
+        });
+
+        if (avatarPath && avatarPath !== uploaded.path) {
+          await deleteStorageFileQuietly(avatarPath);
+        }
+
+        setAvatarPath(uploaded.path);
+        setAvatar(uploaded.url);
+        setAvatarUpload(IDLE_UPLOAD);
+        removedAvatarRef.current = false;
+        flashSaved("Photo updated");
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to upload profile photo:", error);
+
+        setAvatarUpload({
+          status: "error",
+          percent: 0,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Upload failed. Please try again.",
+        });
+      });
   };
 
-  const removeAvatar = () => {
-    setAvatar((current) => {
-      if (current.startsWith("blob:")) {
-        URL.revokeObjectURL(current);
+  /*
+   * Remove the saved photo: clear Firestore first, then delete the
+   * file. A failed Storage delete never undoes the profile update.
+   */
+  const removeAvatar = async () => {
+    const uid = auth.currentUser?.uid;
+
+    if (!uid) {
+      return;
+    }
+
+    try {
+      await updateUserProfile(uid, { photoURL: "", photoPath: "" });
+
+      if (avatarPath) {
+        await deleteStorageFileQuietly(avatarPath);
       }
 
-      return "";
-    });
+      setAvatarPath("");
+      setAvatar("");
+      removedAvatarRef.current = true;
+      flashSaved("Photo removed");
+    } catch (error) {
+      console.error("Failed to remove profile photo:", error);
 
-    removedAvatarRef.current = true;
-    flashSaved("Photo removed");
+      setAvatarUpload({
+        status: "error",
+        percent: 0,
+        message: "Could not remove your photo. Please try again.",
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -333,16 +411,20 @@ export default function Account() {
                 <button
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-black/10 px-4 text-sm transition hover:bg-black/[0.03]"
+                  disabled={avatarUpload.status === "uploading"}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-black/10 px-4 text-sm transition hover:bg-black/[0.03] disabled:opacity-60"
                 >
                   <Pencil className="size-3.5" />
-                  Change photo
+                  {avatarUpload.status === "uploading"
+                    ? "Uploading…"
+                    : "Change photo"}
                 </button>
 
                 <button
                   type="button"
                   onClick={removeAvatar}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-black/10 px-4 text-sm text-red-600 transition hover:bg-red-50"
+                  disabled={avatarUpload.status === "uploading"}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-black/10 px-4 text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-60"
                 >
                   <Trash2 className="size-3.5" />
                   Remove photo
@@ -357,10 +439,19 @@ export default function Account() {
                 </a>
               </div>
 
-              <p className="mt-3 text-xs text-black/40">
-                Photo previews locally. Uploading to the server arrives with
-                account integration.
-              </p>
+              {avatarUpload.status === "error" ? (
+                <p className="mt-3 text-xs text-red-600">
+                  {avatarUpload.message}
+                </p>
+              ) : avatarUpload.status === "uploading" ? (
+                <p className="mt-3 text-xs text-black/50">
+                  Uploading photo… {avatarUpload.percent}%
+                </p>
+              ) : (
+                <p className="mt-3 text-xs text-black/40">
+                  JPG, PNG or WebP up to 5 MB. Saved to your profile.
+                </p>
+              )}
             </div>
           </div>
         </section>

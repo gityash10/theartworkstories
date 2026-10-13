@@ -1,0 +1,78 @@
+rules_version = '2';
+
+/*
+ * Cloud Storage rules — The ArtWork Stories.
+ *
+ * Bucket structure (mirrors story/src/data/storage.ts):
+ *   users/{uid}/profile/avatar.{ext}     avatar
+ *   users/{uid}/cover/cover.{ext}        profile cover
+ *   artworks/{artworkId}/images/{file}   artwork image
+ *
+ * Everything not matched below is denied, including the reserved
+ * artworks/{artworkId}/audio/ and artworks/{artworkId}/video/
+ * folders (the current product never uploads audio or video).
+ *
+ * READ requires authentication: the whole app is behind the Auth
+ * Guard and every image renders on an authenticated page, so
+ * signed-in read is the least privilege that still works.
+ *
+ * WRITE is always owner-only, image-only (JPEG/PNG/WebP) and
+ * <= 5 MB, matching the client validation in data/storage.ts. The
+ * rules are the real gate — client checks are only UX.
+ *
+ * Artwork ownership is verified against the Firestore artwork
+ * document via a cross-service read instead of trusting a
+ * client-supplied uid (the Storage path contains no owner id, so
+ * a malicious client could otherwise upload into someone else's
+ * folder). A missing artwork document fails closed.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAllowedImage() {
+      return request.resource.contentType in [
+          'image/jpeg',
+          'image/png',
+          'image/webp'
+        ]
+        && request.resource.size > 0
+        && request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    function ownsArtwork(artworkId) {
+      return isSignedIn()
+        && firestore.get(
+             /databases/(default)/documents/artworks/$(artworkId)
+           ).data.ownerId == request.auth.uid;
+    }
+
+    // users/{uid}/profile/avatar.{ext}
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && isAllowedImage();
+      allow delete: if isOwner(userId);
+    }
+
+    // users/{uid}/cover/cover.{ext}
+    match /users/{userId}/cover/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && isAllowedImage();
+      allow delete: if isOwner(userId);
+    }
+
+    // artworks/{artworkId}/images/{file}
+    match /artworks/{artworkId}/images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isAllowedImage() && ownsArtwork(artworkId);
+      allow delete: if ownsArtwork(artworkId);
+    }
+  }
+}

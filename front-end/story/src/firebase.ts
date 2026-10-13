@@ -1,6 +1,7 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,5 +21,12 @@ export const auth = getAuth(app);
  * Cloud Firestore — single shared instance for the whole app.
  */
 export const db = getFirestore(app);
+
+/*
+ * Cloud Storage — single shared instance for the whole app.
+ * The bucket comes from VITE_FIREBASE_STORAGE_BUCKET in the same
+ * firebaseConfig above; no second Firebase app is created.
+ */
+export const storage = getStorage(app);
 
 export default app;

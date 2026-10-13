@@ -50,13 +50,19 @@ export interface UserProfile {
   /** Optional unique handle; can be assigned later by profile features. */
   username: string;
   email: string;
+  /** Download URL of the avatar image (Cloud Storage). */
   photoURL: string;
+  /** Bucket path of the avatar, kept so it can be replaced/removed. */
+  photoPath: string;
   bio: string;
   location: string;
   website: string;
   /** Private contact number; never rendered on the public profile. */
   phone: string;
+  /** Download URL of the profile cover image (Cloud Storage). */
   coverImage: string;
+  /** Bucket path of the cover image, kept so it can be replaced/removed. */
+  coverPath: string;
   /** Server timestamp set when the document is first created. */
   joinedAt: FieldValue | Timestamp | null;
   /** Server timestamp refreshed on every write through this layer. */
@@ -83,11 +89,13 @@ export async function createUserProfile(
     username: "",
     email: "",
     photoURL: "",
+    photoPath: "",
     bio: "",
     location: "",
     website: "",
     phone: "",
     coverImage: "",
+    coverPath: "",
     ...input,
     joinedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -146,11 +154,13 @@ export async function ensureUserProfile(
     username: "",
     email: user.email ?? "",
     photoURL: user.photoURL ?? "",
+    photoPath: "",
     bio: "",
     location: "",
     website: "",
     phone: "",
     coverImage: "",
+    coverPath: "",
     ...input,
     joinedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),

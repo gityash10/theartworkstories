@@ -52,8 +52,26 @@ import { auth } from "../firebase";
 import {
   ensureUserProfile,
   getUserProfile,
+  updateUserProfile,
   type UserProfile,
 } from "../data/firestore/users";
+
+import {
+  deleteStorageFileQuietly,
+  uploadProfileImage,
+} from "../data/storage";
+
+/*
+ * Upload feedback for one image field. Real progress while
+ * uploading; an honest message on failure (never a fake success).
+ */
+type UploadState = {
+  status: "idle" | "uploading" | "error";
+  percent: number;
+  message: string;
+};
+
+const IDLE_UPLOAD: UploadState = { status: "idle", percent: 0, message: "" };
 
 type Tab = "Overview" | "Artworks" | "Collections" | "Liked" | "Activity";
 
@@ -408,6 +426,15 @@ function ProfilePage() {
     "/assets/images/story/hero-collage.jpg",
   );
   const [avatarImage, setAvatarImage] = useState("");
+
+  /* Saved bucket paths, so a replaced image can be removed. */
+  const [coverPath, setCoverPath] = useState("");
+
+  const [avatarPath, setAvatarPath] = useState("");
+
+  const [coverUpload, setCoverUpload] = useState<UploadState>(IDLE_UPLOAD);
+
+  const [avatarUpload, setAvatarUpload] = useState<UploadState>(IDLE_UPLOAD);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [savedProfile, setSavedProfile] = useState<{
@@ -496,6 +523,13 @@ function ProfilePage() {
         if (firestoreProfile.photoURL) {
           setAvatarImage(firestoreProfile.photoURL);
         }
+
+        if (firestoreProfile.coverImage) {
+          setCoverImage(firestoreProfile.coverImage);
+        }
+
+        setAvatarPath(firestoreProfile.photoPath ?? "");
+        setCoverPath(firestoreProfile.coverPath ?? "");
 
         /*
          * Hydrate the Liked tab: the user's artwork likes from
@@ -601,28 +635,120 @@ function ProfilePage() {
     };
   }, [avatarImage]);
 
+  /*
+   * Cover image change: uploads to Cloud Storage, then writes the
+   * download URL + bucket path to users/{uid}. The replaced file is
+   * removed only after Firestore is updated.
+   */
   const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
-    if (!file || !file.type.startsWith("image/")) {
-      event.target.value = "";
+    event.target.value = "";
+
+    if (!file || coverUpload.status === "uploading") {
       return;
     }
 
-    setCoverImage(URL.createObjectURL(file));
-    event.target.value = "";
+    const uid = auth.currentUser?.uid;
+
+    if (!uid) {
+      setCoverUpload({
+        status: "error",
+        percent: 0,
+        message: "You must be signed in to change your cover.",
+      });
+
+      return;
+    }
+
+    setCoverUpload({ status: "uploading", percent: 0, message: "" });
+
+    uploadProfileImage("cover", file, (percent) =>
+      setCoverUpload({ status: "uploading", percent, message: "" }),
+    )
+      .then(async (uploaded) => {
+        await updateUserProfile(uid, {
+          coverImage: uploaded.url,
+          coverPath: uploaded.path,
+        });
+
+        if (coverPath && coverPath !== uploaded.path) {
+          await deleteStorageFileQuietly(coverPath);
+        }
+
+        setCoverPath(uploaded.path);
+        setCoverImage(uploaded.url);
+        setCoverUpload(IDLE_UPLOAD);
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to upload cover image:", error);
+
+        setCoverUpload({
+          status: "error",
+          percent: 0,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Upload failed. Please try again.",
+        });
+      });
   };
 
+  /*
+   * Avatar change: same pattern as the cover.
+   */
   const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
-    if (!file || !file.type.startsWith("image/")) {
-      event.target.value = "";
+    event.target.value = "";
+
+    if (!file || avatarUpload.status === "uploading") {
       return;
     }
 
-    setAvatarImage(URL.createObjectURL(file));
-    event.target.value = "";
+    const uid = auth.currentUser?.uid;
+
+    if (!uid) {
+      setAvatarUpload({
+        status: "error",
+        percent: 0,
+        message: "You must be signed in to change your photo.",
+      });
+
+      return;
+    }
+
+    setAvatarUpload({ status: "uploading", percent: 0, message: "" });
+
+    uploadProfileImage("avatar", file, (percent) =>
+      setAvatarUpload({ status: "uploading", percent, message: "" }),
+    )
+      .then(async (uploaded) => {
+        await updateUserProfile(uid, {
+          photoURL: uploaded.url,
+          photoPath: uploaded.path,
+        });
+
+        if (avatarPath && avatarPath !== uploaded.path) {
+          await deleteStorageFileQuietly(avatarPath);
+        }
+
+        setAvatarPath(uploaded.path);
+        setAvatarImage(uploaded.url);
+        setAvatarUpload(IDLE_UPLOAD);
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to upload profile image:", error);
+
+        setAvatarUpload({
+          status: "error",
+          percent: 0,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Upload failed. Please try again.",
+        });
+      });
   };
 
   /*
@@ -881,10 +1007,21 @@ function ProfilePage() {
               <button
                 type="button"
                 onClick={() => coverInputRef.current?.click()}
-                className="absolute right-5 top-5 rounded-full border border-white/40 bg-black/25 px-4 py-2 text-xs font-medium text-white backdrop-blur-md transition hover:bg-black/40"
+                disabled={coverUpload.status === "uploading"}
+                className="absolute right-5 top-5 rounded-full border border-white/40 bg-black/25 px-4 py-2 text-xs font-medium text-white backdrop-blur-md transition hover:bg-black/40 disabled:opacity-60"
               >
-                Change Cover
+                {coverUpload.status === "uploading"
+                  ? "Uploading…"
+                  : "Change Cover"}
               </button>
+
+              {coverUpload.status !== "idle" && (
+                <span className="absolute bottom-3 right-5 rounded-full bg-black/55 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+                  {coverUpload.status === "uploading"
+                    ? `Uploading… ${coverUpload.percent}%`
+                    : coverUpload.message}
+                </span>
+              )}
             </div>
 
             {/* Profile Information */}
@@ -914,13 +1051,28 @@ function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
-                  className="absolute bottom-1 right-1 flex size-8 items-center justify-center rounded-full border border-white/80 bg-[#1d1b1a]/80 text-white shadow-md backdrop-blur-sm transition hover:bg-[#1d1b1a]"
+                  disabled={avatarUpload.status === "uploading"}
+                  className="absolute bottom-1 right-1 flex size-8 items-center justify-center rounded-full border border-white/80 bg-[#1d1b1a]/80 text-white shadow-md backdrop-blur-sm transition hover:bg-[#1d1b1a] disabled:opacity-60"
                   aria-label="Change profile image"
                   title="Change profile image"
                 >
                   <Edit3 className="size-3.5" />
                 </button>
               </div>
+
+              {avatarUpload.status !== "idle" && (
+                <p
+                  className={`mt-2 text-[11px] font-medium ${
+                    avatarUpload.status === "uploading"
+                      ? "text-black/55"
+                      : "text-red-600"
+                  }`}
+                >
+                  {avatarUpload.status === "uploading"
+                    ? `Uploading avatar… ${avatarUpload.percent}%`
+                    : avatarUpload.message}
+                </p>
+              )}
 
               <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 {/* Identity */}

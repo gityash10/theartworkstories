@@ -1667,7 +1667,13 @@
 
     import {
         createArtwork,
+        updateArtwork,
     } from "/story/src/data/firestore/artworks.ts";
+
+    import {
+        deleteStorageFile,
+        uploadArtworkImage,
+    } from "/story/src/data/storage.ts";
 
     import {
         createActivity,
@@ -2565,12 +2571,86 @@
             };
 
 
+            /*
+             * Hoisted so the catch block can tell "nothing was
+             * created" apart from "the artwork exists but its image
+             * could not be attached".
+             */
+            let artworkId = "";
+
+            /*
+             * Whether the image reached the artwork document — the
+             * catch block uses this to describe a partial success
+             * accurately instead of guessing.
+             */
+            let imageAttached = false;
+
+
             try {
 
-                const artworkId = await createArtwork(
+                artworkId = await createArtwork(
                     artworkData,
                     user.uid
                 );
+
+
+                /*
+                 * IMAGE — the Storage path is built from the artwork
+                 * ID, so the file is uploaded after the document
+                 * exists. The document is then updated with the
+                 * download URL and bucket path. If that update fails,
+                 * the just-uploaded file is removed so no orphan is
+                 * left behind.
+                 */
+                const imageFile = fileInput.files[0];
+
+                if (imageFile) {
+
+                    publishButton.textContent =
+                        "Uploading image...";
+
+                    const uploaded = await uploadArtworkImage(
+                        artworkId,
+                        imageFile,
+                        function(percent) {
+
+                            publishButton.textContent =
+                                "Uploading image... " + percent + "%";
+
+                        }
+                    );
+
+                    try {
+
+                        await updateArtwork(artworkId, {
+                            imageUrl: uploaded.url,
+                            imagePath: uploaded.path,
+                            imageFileName: imageFile.name,
+                        });
+
+                        imageAttached = true;
+
+                    } catch (updateError) {
+
+                        try {
+
+                            await deleteStorageFile(uploaded.path);
+
+                        } catch (cleanupError) {
+
+                            console.warn(
+                                "Could not remove orphan artwork image:",
+                                cleanupError
+                            );
+
+                        }
+
+                        throw updateError;
+
+                    }
+
+                }
+
 
                 /*
                  * ACTIVITY — awaited (rather than
@@ -2602,6 +2682,30 @@
                     "Failed to publish artwork:",
                     error
                 );
+
+
+                /*
+                 * The document was created but its image could not be
+                 * attached — say exactly that instead of claiming the
+                 * publish failed (which would invite a duplicate
+                 * retry).
+                 */
+                if (artworkId) {
+
+                    alert(
+                        imageAttached
+                            ? "Your artwork and its image were published, but one detail could not be saved. You can finish it by editing the artwork."
+                            : "Your artwork was published, but its image could not be uploaded. You can add one by editing the artwork."
+                    );
+
+                    window.location.href =
+                        "/pages/app/artwork/index.html?id=" +
+                        encodeURIComponent(artworkId);
+
+                    return;
+
+                }
+
 
                 alert(
                     "We couldn't publish your artwork. Please try again."
